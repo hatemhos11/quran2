@@ -1,30 +1,42 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Text, useTheme } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Button, Text } from 'react-native-paper';
+
+import { ar } from '@/i18n/ar';
+import { sp } from '@/utils/spacing';
+import { getAppColors } from '@/utils/theme';
 
 type Props = {
+  isDark: boolean;
   title: string;
   message: string;
   icon?: keyof typeof MaterialCommunityIcons.glyphMap;
-  actionLabel?: string;
-  onAction?: () => void;
+  onRetry?: () => void;
+  retryLabel?: string;
 };
 
-export function EmptyState({ title, message, icon = 'book-open-page-variant', actionLabel, onAction }: Props) {
-  const theme = useTheme();
-
+export function EmptyState({
+  isDark,
+  title,
+  message,
+  icon = 'book-open-page-variant',
+  onRetry,
+  retryLabel = ar.tryAgain,
+}: Props) {
+  const c = getAppColors(isDark);
   return (
-    <View style={styles.wrap} accessibilityRole="text">
-      <MaterialCommunityIcons name={icon} size={56} color={theme.colors.onSurfaceVariant} />
-      <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
+    <View style={styles.wrap}>
+      <MaterialCommunityIcons name={icon} size={48} color={c.accent} style={styles.icon} />
+      <Text variant="titleLarge" style={[styles.title, { color: c.text }]}>
         {title}
       </Text>
-      <Text variant="bodyMedium" style={[styles.msg, { color: theme.colors.onSurfaceVariant }]}>
+      <Text variant="bodyMedium" style={[styles.msg, { color: c.textSecondary }]}>
         {message}
       </Text>
-      {actionLabel && onAction ? (
-        <Button mode="contained" onPress={onAction} style={styles.btn}>
-          {actionLabel}
+      {onRetry ? (
+        <Button mode="contained" onPress={onRetry} style={styles.btn} accessibilityLabel={retryLabel}>
+          {retryLabel}
         </Button>
       ) : null}
     </View>
@@ -34,20 +46,13 @@ export function EmptyState({ title, message, icon = 'book-open-page-variant', ac
 const styles = StyleSheet.create({
   wrap: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    justifyContent: 'center',
+    padding: sp.xl,
+    gap: sp.md,
   },
-  title: {
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  msg: {
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  btn: {
-    marginTop: 20,
-  },
+  icon: { marginBottom: sp.xs },
+  title: { textAlign: 'center' },
+  msg: { textAlign: 'center', maxWidth: 300 },
+  btn: { marginTop: sp.sm, minHeight: 40 },
 });

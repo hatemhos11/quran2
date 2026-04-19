@@ -1,59 +1,76 @@
-import { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
+
+import { ar } from '@/i18n/ar';
+import { sp } from '@/utils/spacing';
+import { getAppColors } from '@/utils/theme';
 
 type Props = {
-  rows?: number;
+  isDark: boolean;
+  count?: number;
 };
 
-export function LoadingSkeleton({ rows = 8 }: Props) {
-  const theme = useTheme();
-  const opacity = useRef(new Animated.Value(0.35)).current;
+function SkeletonLine({ isDark, widthPct }: { isDark: boolean; widthPct: number }) {
+  const c = getAppColors(isDark);
+  const pulse = useRef(new Animated.Value(0.35)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.65,
+        Animated.timing(pulse, {
+          toValue: 1,
           duration: 700,
+          easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
-        Animated.timing(opacity, {
+        Animated.timing(pulse, {
           toValue: 0.35,
           duration: 700,
+          easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
       ])
     );
     loop.start();
     return () => loop.stop();
-  }, [opacity]);
+  }, [pulse]);
 
   return (
-    <View style={styles.wrap} accessibilityLabel="Loading content">
-      {Array.from({ length: rows }).map((_, i) => (
-        <Animated.View
-          key={i}
-          style={[
-            styles.row,
-            {
-              opacity,
-              backgroundColor: theme.colors.surfaceVariant,
-            },
-          ]}
-        />
+    <Animated.View
+      style={[
+        styles.line,
+        {
+          width: `${widthPct}%`,
+          backgroundColor: isDark ? '#2c3e50' : '#e0e0e0',
+          opacity: pulse,
+        },
+      ]}
+      accessibilityLabel={ar.loadingLabel}
+    />
+  );
+}
+
+export function LoadingSkeleton({ isDark, count = 6 }: Props) {
+  const c = getAppColors(isDark);
+  return (
+    <View style={[styles.card, { backgroundColor: c.surface }]} accessibilityRole="progressbar">
+      {Array.from({ length: count }).map((_, i) => (
+        <SkeletonLine key={i} isDark={isDark} widthPct={85 - (i % 3) * 10} />
       ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    padding: 16,
-    gap: 12,
+  card: {
+    marginHorizontal: sp.lg,
+    marginVertical: sp.md,
+    padding: sp.xl,
+    borderRadius: sp.md,
+    gap: sp.lg,
   },
-  row: {
-    height: 56,
-    borderRadius: 12,
+  line: {
+    height: 14,
+    borderRadius: 4,
   },
 });

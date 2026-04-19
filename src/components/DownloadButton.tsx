@@ -1,109 +1,106 @@
-import { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, ProgressBar, Text, useTheme } from 'react-native-paper';
-import { downloadSurahForOffline } from '../services/downloadSurah';
-import { deleteSurahDownload, isSurahDownloaded } from '../services/offlineStorage';
-import { useSettingsStore } from '../store/settingsStore';
-import { useQuranStore } from '../store/quranStore';
-import type { SurahSummary } from '../types';
+import { Button, ProgressBar, Text } from 'react-native-paper';
+
+import { ar } from '@/i18n/ar';
+import { sp } from '@/utils/spacing';
+import { getAppColors } from '@/utils/theme';
 
 type Props = {
-  meta: SurahSummary;
+	isDark: boolean;
+	isOnline: boolean;
+	isDownloaded: boolean;
+	progress: number | null;
+	busy: boolean;
+	onDownload: () => void;
+	onDelete: () => void;
 };
 
-export function DownloadButton({ meta }: Props) {
-  const theme = useTheme();
-  const arabicEdition = useSettingsStore((s) => s.arabicEdition);
-  const translationEdition = useSettingsStore((s) => s.translationEdition);
-  const preferredTafsir = useSettingsStore((s) => s.preferredTafsir);
-  const refreshDownloaded = useQuranStore((s) => s.refreshDownloaded);
-  const refreshStorageEstimate = useQuranStore((s) => s.refreshStorageEstimate);
+export function DownloadButton({
+	isDark,
+	isOnline,
+	isDownloaded,
+	progress,
+	busy,
+	onDownload,
+	onDelete,
+}: Props) {
+	const c = getAppColors(isDark);
 
-  const [downloaded, setDownloaded] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState(0);
+	if (isDownloaded) {
+		return (
+			<View style={styles.row}>
+				{/* <View
+					style={[styles.badge, { backgroundColor: `${c.accent}22` }]}
+				>
+					<MaterialCommunityIcons
+						name='check-circle'
+						size={18}
+						color={c.accent}
+					/>
+					<Text variant='labelLarge' style={{ color: c.accent }}>
+						{ar.offlineSaved}
+					</Text>
+				</View> */}
+				{/* <Button mode="outlined" onPress={onDelete} disabled={busy} textColor={c.text}>
+          {ar.removeDownload}
+        </Button> */}
+			</View>
+		);
+	}
 
-  const refresh = useCallback(async () => {
-    const d = await isSurahDownloaded(meta.number);
-    setDownloaded(d);
-  }, [meta.number]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  const onDownload = useCallback(async () => {
-    setBusy(true);
-    setProgress(0);
-    try {
-      await downloadSurahForOffline(
-        meta,
-        arabicEdition,
-        translationEdition,
-        [preferredTafsir],
-        (pct) => setProgress(pct / 100)
-      );
-      await refresh();
-      await refreshDownloaded();
-      await refreshStorageEstimate();
-    } catch {
-      /* toast */
-    } finally {
-      setBusy(false);
-      setProgress(0);
-    }
-  }, [
-    arabicEdition,
-    meta,
-    preferredTafsir,
-    refresh,
-    refreshDownloaded,
-    refreshStorageEstimate,
-    translationEdition,
-  ]);
-
-  const onDelete = useCallback(async () => {
-    setBusy(true);
-    try {
-      await deleteSurahDownload(meta.number);
-      await refresh();
-      await refreshDownloaded();
-      await refreshStorageEstimate();
-    } finally {
-      setBusy(false);
-    }
-  }, [meta.number, refresh, refreshDownloaded, refreshStorageEstimate]);
-
-  return (
-    <View style={styles.wrap}>
-      {busy ? (
-        <>
-          <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
-            Downloading…
-          </Text>
-          <ProgressBar progress={progress} style={styles.bar} />
-        </>
-      ) : downloaded ? (
-        <Button mode="outlined" icon="delete" onPress={onDelete} disabled={busy}>
-          Remove download
-        </Button>
-      ) : (
-        <Button mode="contained" icon="download" onPress={onDownload} disabled={busy}>
-          Download surah
-        </Button>
-      )}
-    </View>
-  );
+	return (
+		<View style={styles.col}>
+			<Button
+				mode='contained-tonal'
+				onPress={onDownload}
+				disabled={!isOnline || busy}
+				icon='download'
+				contentStyle={styles.btnContent}
+				accessibilityLabel={ar.downloadSurah}
+			>
+				{busy && progress !== null
+					? ar.downloadingPct(progress)
+					: ar.downloadSurah}
+			</Button>
+			{!isOnline ? (
+				<Text
+					variant='bodySmall'
+					style={{ color: c.textSecondary, textAlign: 'center' }}
+				>
+					{ar.connectToDownload}
+				</Text>
+			) : null}
+			{busy && progress !== null ? (
+				<ProgressBar
+					progress={progress / 100}
+					style={styles.bar}
+					color={c.accent}
+				/>
+			) : null}
+		</View>
+	);
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  bar: {
-    marginTop: 8,
-    height: 8,
-    borderRadius: 4,
-  },
+	row: {
+		paddingHorizontal: sp.lg,
+		gap: sp.md,
+		alignItems: 'center',
+	},
+	col: {
+		paddingHorizontal: sp.lg,
+		gap: sp.sm,
+	},
+	btnContent: { minHeight: 40 },
+	bar: { height: 6, borderRadius: 3, marginTop: sp.xs },
+	badge: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: sp.sm,
+		paddingHorizontal: sp.md,
+		paddingVertical: sp.sm,
+		borderRadius: sp.md,
+	},
 });
+

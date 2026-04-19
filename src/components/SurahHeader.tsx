@@ -1,90 +1,71 @@
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Chip, Text, useTheme } from 'react-native-paper';
-import { BISMILLAH_TEXT, SURAH_AT_TAWBAH } from '../utils/constants';
-import type { SurahSummary } from '../types';
-import { getArabicFontFamily } from '../services/fontLoader';
-import type { ArabicFontId } from '../types';
-import { tokens } from '../utils/constants';
+import { Chip, Text } from 'react-native-paper';
+
+import { ar } from '@/i18n/ar';
+import type { SurahMeta } from '@/types';
+import { sp } from '@/utils/spacing';
+import { getAppColors } from '@/utils/theme';
 
 type Props = {
-  surah: SurahSummary;
-  arabicFontSize: number;
-  arabicFontId: ArabicFontId;
+  surah: SurahMeta;
+  isDark: boolean;
+  showTransliteration: boolean;
 };
 
-export function SurahHeader({ surah, arabicFontSize, arabicFontId }: Props) {
-  const theme = useTheme();
-  const ff = getArabicFontFamily(arabicFontId);
-
-  const showBismillah = surah.number !== SURAH_AT_TAWBAH;
+export function SurahHeader({ surah, isDark, showTransliteration }: Props) {
+  const c = getAppColors(isDark);
+  const isMadani = surah.revelationType === 'Medinan';
 
   return (
-    <View style={[styles.block, { backgroundColor: theme.colors.surface }]}>
-      <Text style={[styles.nameAr, { color: theme.colors.primary, fontSize: arabicFontSize + 6 }, ff && { fontFamily: ff }]}>
+    <View style={styles.wrap}>
+      <Text
+        variant="headlineMedium"
+        style={[styles.arName, { color: c.arabic }]}
+        accessibilityRole="header">
         {surah.name}
       </Text>
-      <Text variant="titleMedium" style={[styles.nameEn, { color: theme.colors.onSurface }]}>
-        {surah.englishName}
-      </Text>
-      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-        {surah.englishNameTranslation}
-      </Text>
-      <View style={styles.row}>
-        <Chip compact style={styles.chip}>
-          {surah.numberOfAyahs} ayahs
-        </Chip>
-        <Chip compact style={styles.chip} mode="outlined">
-          {surah.revelationType}
-        </Chip>
-      </View>
-      {showBismillah ? (
-        <Text
-          style={[
-            styles.bismillah,
-            {
-              color: theme.colors.onSurface,
-              fontSize: arabicFontSize,
-              lineHeight: arabicFontSize * 2.2,
-              fontFamily: ff,
-            },
-          ]}
-        >
-          {BISMILLAH_TEXT}
+      {showTransliteration ? (
+        <Text variant="titleMedium" style={[styles.en, { color: c.text }]}>
+          {surah.englishName}
         </Text>
       ) : null}
+      <View style={styles.row}>
+        <Chip
+          mode="outlined"
+          compact
+          style={[styles.chip, { borderColor: c.accent }]}
+          textStyle={{ color: c.accent }}>
+          {ar.subAyahs(surah.numberOfAyahs)}
+        </Chip>
+        <Chip
+          mode="flat"
+          compact
+          style={[
+            styles.chip,
+            { backgroundColor: isMadani ? `${c.accent}22` : `${c.accentMuted}22` },
+          ]}
+          textStyle={{ color: c.text }}>
+          {isMadani ? ar.madani : ar.makki}
+        </Chip>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  block: {
-    padding: tokens.space.md,
-    marginBottom: tokens.space.sm,
-    borderRadius: tokens.radius.md,
-    marginHorizontal: tokens.space.sm,
-    elevation: 1,
+  wrap: {
+    paddingHorizontal: sp.lg,
+    paddingTop: sp.xs,
+    paddingBottom: sp.lg,
+    gap: sp.sm,
+    alignItems: 'center',
   },
-  nameAr: {
+  arName: {
     textAlign: 'center',
     writingDirection: 'rtl',
   },
-  nameEn: {
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 12,
-  },
-  chip: {
-    marginVertical: 2,
-  },
-  bismillah: {
-    marginTop: 16,
-    textAlign: 'center',
-    writingDirection: 'rtl',
-  },
+  en: { textAlign: 'center' },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: sp.sm, justifyContent: 'center' },
+  chip: { alignSelf: 'center' },
 });

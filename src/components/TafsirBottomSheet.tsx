@@ -1,208 +1,187 @@
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Clipboard,
-  ScrollView,
-  Share,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { Button, Chip, Text, useTheme } from 'react-native-paper';
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchAyahTafsir } from '../services/quranApi';
-import { getTafsirFromDatabase } from '../services/offlineStorage';
-import { useSettingsStore } from '../store/settingsStore';
-import { TAFSIR_SOURCES } from '../utils/constants';
+import * as Clipboard from 'expo-clipboard';
+import React, { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Share, StyleSheet, View } from 'react-native';
+import { Button, SegmentedButtons, Text } from 'react-native-paper';
+
+import { ar } from '@/i18n/ar';
+import { apiFetchTafsir } from '@/services/quranApi';
+import { loadTafsirOffline } from '@/services/offlineStorage';
+import { useSettingsStore } from '@/store/settingsStore';
+import type { Ayah, TafsirEdition } from '@/types';
+import { TAFSIR_SOURCES } from '@/utils/constants';
+import { sp } from '@/utils/spacing';
+import { getAppColors } from '@/utils/theme';
+
+export type TafsirSheetRef = BottomSheetModal;
 
 type Props = {
-  surahNumber: number | null;
-  ayahInSurah: number | null;
-  arabicPreview: string;
-  translationPreview?: string;
+  isDark: boolean;
+  isOnline: boolean;
+  surahNumber: number;
+  surahEnglishName: string;
+  ayah: Ayah | null;
   onDismiss: () => void;
 };
 
-export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(
-  ({ surahNumber, ayahInSurah, arabicPreview, translationPreview, onDismiss }, ref) => {
-    const theme = useTheme();
-    const insets = useSafeAreaInsets();
-    const preferredTafsir = useSettingsStore((s) => s.preferredTafsir);
-    const arabicFontSize = useSettingsStore((s) => s.arabicFontSize);
+export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(function TafsirBottomSheet(
+  { isDark, isOnline, surahNumber, surahEnglishName, ayah, onDismiss },
+  ref
+) {
+  const c = getAppColors(isDark);
+  const preferred = useSettingsStore((s) => s.preferredTafsir);
+  const [source, setSource] = useState<TafsirEdition>(preferred);
+  const [body, setBody] = useState('');
+  const [loading, setLoading] = useState(false);
 
-    const [source, setSource] = useState(preferredTafsir);
-    const [text, setText] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    setSource(preferred);
+  }, [preferred]);
 
-    const snapPoints = useMemo(() => ['45%', '88%'], []);
-
-    const load = useCallback(async () => {
-      if (surahNumber == null || ayahInSurah == null) return;
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!ayah) {
+        setBody('');
+        return;
+      }
       setLoading(true);
-      setError(null);
-      setText(null);
+      setBody('');
       try {
-        const local = await getTafsirFromDatabase(surahNumber, ayahInSurah, source);
-        if (local) {
-          setText(local);
+        const local = await loadTafsirOffline(surahNumber, ayah.numberInSurah, source);
+        if (!cancelled && local) {
+          setBody(local);
+          setLoading(false);
           return;
         }
-        const res = await fetchAyahTafsir(surahNumber, ayahInSurah, source);
-        const ayah = res.data?.[0]?.ayahs?.[0];
-        setText(ayah?.text ?? 'No tafsir text returned.');
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load tafsir');
+        if (!isOnline) {
+          if (!cancelled) setBody(ar.tafsirOfflineUnavailable);
+          if (!cancelled) setLoading(false);
+          return;
+        }
+        const remote = await apiFetchTafsir(ayah.numberInQuran, source);
+        if (!cancelled) setBody(remote || ar.noTafsir);
+      } catch {
+        if (!cancelled) setBody(ar.tafsirLoadError);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    }, [surahNumber, ayahInSurah, source]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ayah, source, isOnline, surahNumber]);
 
-    useEffect(() => {
-      if (surahNumber != null && ayahInSurah != null) {
-        void load();
-      }
-    }, [surahNumber, ayahInSurah, source, load]);
+  const backdrop = useCallback(
+    (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
+      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.45} />
+    ),
+    []
+  );
 
-    useEffect(() => {
-      setSource(preferredTafsir);
-    }, [preferredTafsir, surahNumber, ayahInSurah]);
+  const snapPoints = useMemo(() => ['48%', '88%'], []);
 
-    const copyAyah = useCallback(() => {
-      const block = [arabicPreview, translationPreview].filter(Boolean).join('\n\n');
-      Clipboard.setString(block);
-    }, [arabicPreview, translationPreview]);
+  const onCopy = async () => {
+    if (!ayah) return;
+    const block = `${ayah.text}\n\n${body}`;
+    await Clipboard.setStringAsync(block);
+  };
 
-    const shareAyah = useCallback(async () => {
-      const block = [arabicPreview, translationPreview].filter(Boolean).join('\n\n');
-      await Share.share({ message: block, title: `Quran ${surahNumber}:${ayahInSurah}` });
-    }, [arabicPreview, ayahInSurah, surahNumber, translationPreview]);
+  const onShare = async () => {
+    if (!ayah) return;
+    await Share.share({
+      message: `${ayah.text}\n\n— ${surahEnglishName} ${surahNumber}:${ayah.numberInSurah}\n\n${body}`,
+    });
+  };
 
-    const renderBackdrop = useCallback(
-      (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.45} />
-      ),
-      []
-    );
-
-    return (
-      <BottomSheetModal
-        ref={ref}
-        index={1}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        onDismiss={onDismiss}
-      >
-        <BottomSheetScrollView
-          contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 16 }]}
-        >
-          <Text style={[styles.ref, { color: theme.colors.primary }]}>
-            {surahNumber}:{ayahInSurah}
-          </Text>
-          <Text
-            style={[
-              styles.arPreview,
-              {
-                color: theme.colors.onSurface,
-                fontSize: Math.min(arabicFontSize, 26),
-                lineHeight: arabicFontSize * 2.2,
-              },
-            ]}
-          >
-            {arabicPreview}
-          </Text>
-          {translationPreview ? (
-            <Text style={[styles.trPreview, { color: theme.colors.onSurfaceVariant }]}>{translationPreview}</Text>
-          ) : null}
-
-          <View style={styles.actions}>
-            <Button mode="outlined" onPress={copyAyah} icon="content-copy">
-              Copy
-            </Button>
-            <Button mode="outlined" onPress={shareAyah} icon="share-variant">
-              Share
-            </Button>
-          </View>
-
-          <Text variant="titleSmall" style={{ color: theme.colors.onSurface, marginBottom: 8 }}>
-            Tafsir
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-            {TAFSIR_SOURCES.map((s) => (
-              <Chip
-                key={s.id}
-                selected={source === s.id}
-                onPress={() => setSource(s.id)}
-                style={styles.chip}
-                mode={source === s.id ? 'flat' : 'outlined'}
-              >
-                {s.label}
-              </Chip>
-            ))}
-          </ScrollView>
-
-          {loading ? (
-            <View style={styles.center}>
-              <ActivityIndicator />
+  return (
+    <BottomSheetModal
+      ref={ref}
+      index={0}
+      snapPoints={snapPoints}
+      enablePanDownToClose
+      backdropComponent={backdrop}
+      onDismiss={onDismiss}
+      handleIndicatorStyle={{ backgroundColor: c.textSecondary }}
+      backgroundStyle={{ backgroundColor: c.surface }}>
+      <BottomSheetScrollView
+        contentContainerStyle={styles.sheetPad}
+        keyboardShouldPersistTaps="handled">
+        <Text variant="titleMedium" style={{ color: c.text, marginBottom: sp.sm, writingDirection: 'rtl' }}>
+          {ar.tafsir}
+        </Text>
+        {ayah ? (
+          <>
+            <Text
+              style={[
+                styles.highlightAyah,
+                {
+                  color: c.arabic,
+                  borderColor: c.accent,
+                  backgroundColor: isDark ? '#0d1b2a' : '#f5f5dc',
+                },
+              ]}>
+              {ayah.text}
+            </Text>
+            <SegmentedButtons
+              value={source}
+              onValueChange={(v) => setSource(v as TafsirEdition)}
+              style={styles.seg}
+              buttons={TAFSIR_SOURCES.map((s) => ({
+                value: s.id,
+                label: s.label,
+              }))}
+            />
+            {loading ? (
+              <ActivityIndicator color={c.accent} style={{ marginVertical: sp.lg }} />
+            ) : (
+              <Text variant="bodyLarge" style={[styles.tafsirBody, { color: c.text, writingDirection: 'rtl' }]}>
+                {body || '—'}
+              </Text>
+            )}
+            <View style={styles.actions}>
+              <Button mode="contained-tonal" onPress={onCopy} icon="content-copy">
+                {ar.copy}
+              </Button>
+              <Button mode="outlined" onPress={onShare} icon="share-variant">
+                {ar.share}
+              </Button>
             </View>
-          ) : error ? (
-            <Text style={styles.error}>{error}</Text>
-          ) : (
-            <Text style={[styles.content, { color: theme.colors.onSurface }]}>{text}</Text>
-          )}
-        </BottomSheetScrollView>
-      </BottomSheetModal>
-    );
-  }
-);
+          </>
+        ) : (
+          <Text style={{ color: c.textSecondary, writingDirection: 'rtl' }}>{ar.selectAyah}</Text>
+        )}
+      </BottomSheetScrollView>
+    </BottomSheetModal>
+  );
+});
 
 TafsirBottomSheet.displayName = 'TafsirBottomSheet';
 
 const styles = StyleSheet.create({
-  body: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
+  sheetPad: {
+    paddingHorizontal: sp.xl,
+    paddingBottom: sp.xxl + sp.md,
   },
-  ref: {
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  arPreview: {
+  highlightAyah: {
+    fontSize: 20,
+    lineHeight: 36,
     textAlign: 'right',
     writingDirection: 'rtl',
+    padding: sp.md,
+    borderRadius: sp.md,
+    borderWidth: 1,
+    marginBottom: sp.md,
   },
-  trPreview: {
-    marginTop: 8,
-    lineHeight: 22,
+  tafsirBody: {
+    lineHeight: 24,
+    marginTop: sp.sm,
   },
+  seg: { marginVertical: sp.sm },
   actions: {
     flexDirection: 'row',
+    gap: sp.md,
+    marginTop: sp.lg,
     flexWrap: 'wrap',
-    gap: 8,
-    marginVertical: 16,
-  },
-  chips: {
-    gap: 8,
-    paddingBottom: 8,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  chip: {
-    marginRight: 4,
-    marginBottom: 4,
-  },
-  center: {
-    paddingVertical: 24,
-    alignItems: 'center',
-  },
-  content: {
-    lineHeight: 24,
-    marginTop: 8,
-  },
-  error: {
-    color: '#b91c1c',
-    marginTop: 8,
   },
 });
