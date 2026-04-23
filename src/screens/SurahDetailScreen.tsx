@@ -33,6 +33,7 @@ import type { MainStackParamList } from '@/navigation/types';
 import { getArabicFontFamily } from '@/services/fontLoader';
 import { loadSurahOffline } from '@/services/offlineStorage';
 import { apiFetchSurahWithAyahs } from '@/services/quranApi';
+import { pinnedAyahKey, usePinnedAyahStore } from '@/store/pinnedAyahStore';
 import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { Ayah, SurahWithAyahs } from '@/types';
@@ -76,6 +77,16 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 	const scrollRef = useRef<ScrollView>(null);
 	const sheetRef = useRef<BottomSheetModal>(null);
 	const [picked, setPicked] = useState<Ayah | null>(null);
+
+	const pins = usePinnedAyahStore((s) => s.pins);
+	const togglePin = usePinnedAyahStore((s) => s.togglePin);
+	const pickedIsPinned = picked
+		? !!pins[pinnedAyahKey(surahNumber, picked.numberInSurah)]
+		: false;
+	const onTogglePickedPin = useCallback(() => {
+		if (!picked) return;
+		togglePin(surahNumber, picked.numberInSurah);
+	}, [picked, surahNumber, togglePin]);
 
 	const arabicFamily = getArabicFontFamily(readingFont);
 
@@ -398,6 +409,14 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 								selected={
 									selectedNumberInSurah === ayah.numberInSurah
 								}
+								isPinned={
+									!!pins[
+										pinnedAyahKey(
+											surahNumber,
+											ayah.numberInSurah,
+										)
+									]
+								}
 								onLongPressAyah={openAyah}
 							/>
 						));
@@ -429,6 +448,8 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 				surahNumber={surahNumber}
 				surahEnglishName={data.englishName}
 				ayah={picked}
+				ayahIsPinned={pickedIsPinned}
+				onTogglePin={onTogglePickedPin}
 				onDismiss={onSheetDismiss}
 			/>
 		</SafeAreaView>

@@ -13,13 +13,8 @@ import type { MainStackParamList } from '@/navigation/types';
 import { clearAllOfflineData, getApproxStorageBytes } from '@/services/offlineStorage';
 import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import type { ReadingFontId, ThemeMode, TafsirEdition } from '@/types';
-import {
-  FONT_SIZE_MAX,
-  FONT_SIZE_MIN,
-  SURAH_COUNT,
-  TAFSIR_SOURCES,
-} from '@/utils/constants';
+import type { ReadingFontId, ThemeMode } from '@/types';
+import { FONT_SIZE_MAX, FONT_SIZE_MIN, SURAH_COUNT } from '@/utils/constants';
 import {
   estimateFullOfflinePackageBytes,
   estimateFullTextOnlyPackageBytes,
@@ -45,8 +40,6 @@ export function SettingsScreen({}: Props) {
   const setFontSize = useSettingsStore((s) => s.setFontSize);
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
-  const preferredTafsir = useSettingsStore((s) => s.preferredTafsir);
-  const setPreferredTafsir = useSettingsStore((s) => s.setPreferredTafsir);
   const showTransliteration = useSettingsStore((s) => s.showTransliteration);
   const setShowTransliteration = useSettingsStore((s) => s.setShowTransliteration);
   const readingFont = useSettingsStore((s) => s.readingFont);
@@ -260,21 +253,6 @@ export function SettingsScreen({}: Props) {
             titleStyle={{ color: c.text }}
             onPress={() => setTheme(m)}
             right={() => (theme === m ? <List.Icon icon="check" color={c.accent} /> : null)}
-          />
-        ))}
-      </List.Section>
-
-      <List.Section>
-        <List.Subheader style={{ color: c.textSecondary }}>{ar.preferredTafsir}</List.Subheader>
-        {TAFSIR_SOURCES.map((s) => (
-          <List.Item
-            key={s.id}
-            title={s.label}
-            titleStyle={{ color: c.text }}
-            onPress={() => setPreferredTafsir(s.id as TafsirEdition)}
-            right={() =>
-              preferredTafsir === s.id ? <List.Icon icon="check" color={c.accent} /> : null
-            }
           />
         ))}
       </List.Section>

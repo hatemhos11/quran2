@@ -2,14 +2,15 @@ import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView } from '@g
 import * as Clipboard from 'expo-clipboard';
 import React, { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Share, StyleSheet, View } from 'react-native';
-import { Button, SegmentedButtons, Text } from 'react-native-paper';
+import { Button, IconButton, Text } from 'react-native-paper';
+
+import * as Haptics from 'expo-haptics';
 
 import { ar } from '@/i18n/ar';
 import { apiFetchTafsir } from '@/services/quranApi';
 import { loadTafsirOffline } from '@/services/offlineStorage';
-import { useSettingsStore } from '@/store/settingsStore';
-import type { Ayah, TafsirEdition } from '@/types';
-import { TAFSIR_SOURCES } from '@/utils/constants';
+import type { Ayah } from '@/types';
+import { MUYASSAR_TAFSIR_ID } from '@/utils/constants';
 import { sp } from '@/utils/spacing';
 import { getAppColors } from '@/utils/theme';
 
@@ -21,22 +22,24 @@ type Props = {
   surahNumber: number;
   surahEnglishName: string;
   ayah: Ayah | null;
+  /** Whether the open ayah is currently pinned. */
+  ayahIsPinned: boolean;
+  onTogglePin: () => void;
   onDismiss: () => void;
 };
 
 export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(function TafsirBottomSheet(
-  { isDark, isOnline, surahNumber, surahEnglishName, ayah, onDismiss },
+  { isDark, isOnline, surahNumber, surahEnglishName, ayah, ayahIsPinned, onTogglePin, onDismiss },
   ref
 ) {
   const c = getAppColors(isDark);
-  const preferred = useSettingsStore((s) => s.preferredTafsir);
-  const [source, setSource] = useState<TafsirEdition>(preferred);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    setSource(preferred);
-  }, [preferred]);
+  const onPressPin = useCallback(() => {
+    onTogglePin();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+  }, [onTogglePin]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +51,11 @@ export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(function Ta
       setLoading(true);
       setBody('');
       try {
-        const local = await loadTafsirOffline(surahNumber, ayah.numberInSurah, source);
+        const local = await loadTafsirOffline(
+          surahNumber,
+          ayah.numberInSurah,
+          MUYASSAR_TAFSIR_ID
+        );
         if (!cancelled && local) {
           setBody(local);
           setLoading(false);
@@ -59,7 +66,7 @@ export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(function Ta
           if (!cancelled) setLoading(false);
           return;
         }
-        const remote = await apiFetchTafsir(ayah.numberInQuran, source);
+        const remote = await apiFetchTafsir(ayah.numberInQuran, MUYASSAR_TAFSIR_ID);
         if (!cancelled) setBody(remote || ar.noTafsir);
       } catch {
         if (!cancelled) setBody(ar.tafsirLoadError);
@@ -70,7 +77,7 @@ export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(function Ta
     return () => {
       cancelled = true;
     };
-  }, [ayah, source, isOnline, surahNumber]);
+  }, [ayah, isOnline, surahNumber]);
 
   const backdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -107,9 +114,21 @@ export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(function Ta
       <BottomSheetScrollView
         contentContainerStyle={styles.sheetPad}
         keyboardShouldPersistTaps="handled">
-        <Text variant="titleMedium" style={{ color: c.text, marginBottom: sp.sm, writingDirection: 'rtl' }}>
-          {ar.tafsir}
-        </Text>
+        <View style={styles.sheetHeader}>
+          <Text
+            variant="titleMedium"
+            style={{ color: c.text, flex: 1, writingDirection: 'rtl' }}>
+            {ar.tafsirMuyassarTitle}
+          </Text>
+          {ayah ? (
+            <IconButton
+              icon={ayahIsPinned ? 'pin' : 'pin-outline'}
+              onPress={onPressPin}
+              iconColor={ayahIsPinned ? c.accent : c.textSecondary}
+              accessibilityLabel={ayahIsPinned ? ar.unpinAyahA11y : ar.pinAyahA11y}
+            />
+          ) : null}
+        </View>
         {ayah ? (
           <>
             <Text
@@ -123,15 +142,6 @@ export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(function Ta
               ]}>
               {ayah.text}
             </Text>
-            <SegmentedButtons
-              value={source}
-              onValueChange={(v) => setSource(v as TafsirEdition)}
-              style={styles.seg}
-              buttons={TAFSIR_SOURCES.map((s) => ({
-                value: s.id,
-                label: s.label,
-              }))}
-            />
             {loading ? (
               <ActivityIndicator color={c.accent} style={{ marginVertical: sp.lg }} />
             ) : (
@@ -177,7 +187,11 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginTop: sp.sm,
   },
-  seg: { marginVertical: sp.sm },
+  sheetHeader: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    marginBottom: sp.sm,
+  },
   actions: {
     flexDirection: 'row',
     gap: sp.md,

@@ -47,6 +47,9 @@ export const ar = {
   light: 'فاتح',
   dark: 'داكن',
   preferredTafsir: 'مصدر التفسير المفضل',
+  tafsirMuyassarTitle: 'تفسير الميسر',
+  pinAyahA11y: 'تثبيت الآية',
+  unpinAyahA11y: 'إلغاء تثبيت الآية',
   offlineStorage: 'التخزين دون اتصال',
   estimatedData: 'البيانات التقريبية في القاعدة',
   approxDownloadPackageTitle: 'حجم التنزيل (تقريبي)',
@@ -65,14 +68,14 @@ export const ar = {
   downloadAllSurahs: 'تنزيل كل السور',
   downloadFullPackage: 'تحميل الحزمة كاملة',
   downloadFullPackageDesc:
-    'نص القرآن مع التفسير (جميع المصادر في التطبيق) لكل سورة غير محفوظة. يستغرق وقتاً ويستهلك بياناتاً كثيرة.',
+    'نص القرآن مع تفسير الميسر فقط لكل سورة غير محفوظة. يستغرق وقتاً ويستهلك بياناتاً أكثر من الحزمة البسيطة.',
   downloadSimplePackage: 'تحميل حزمة بسيطة',
   downloadSimplePackageDesc:
     'نص الآيات فقط، دون تفسير ولا أي محتوى آخر. أسرع وأخفّ على التخزين والبيانات.',
   startBulkDownload: 'ابدأ التنزيل',
   downloadFullPackageConfirmTitle: 'تنزيل الحزمة الكاملة؟',
   downloadFullPackageConfirmMessage:
-    'سيتم تنزيل النص والتفسير لجميع السور غير المحفوظة. تأكد من اتصال مستقر.',
+    'سيتم تنزيل نص السور مع تفسير الميسر فقط. تأكد من اتصال مستقر.',
   downloadSimplePackageConfirmTitle: 'تنزيل الحزمة البسيطة؟',
   downloadSimplePackageConfirmMessage:
     'سيتم تنزيل نص الآيات فقط للسور غير المحفوظة، دون أي تفسير.',

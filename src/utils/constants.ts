@@ -7,11 +7,11 @@ export const SURAH_COUNT = 114;
 
 export const QURAN_EDITION = 'quran-uthmani';
 
+/** App uses تفسير الميسر only (online, offline, and download). */
+export const MUYASSAR_TAFSIR_ID: TafsirEdition = 'ar.muyassar';
+
 export const TAFSIR_SOURCES: { id: TafsirEdition; label: string }[] = [
   { id: 'ar.muyassar', label: 'الميسر' },
-  { id: 'ar.jalalayn', label: 'الجلالين' },
-  { id: 'ar.baghawy', label: 'البغوي' },
-  { id: 'ar.qurtubi', label: 'القرطبي' },
 ];
 
 export const FONT_SIZE_MIN = 24;

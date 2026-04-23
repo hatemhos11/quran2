@@ -15,6 +15,7 @@ type Props = {
 	arabicFontFamily?: string;
 	isDark: boolean;
 	selected: boolean;
+	isPinned: boolean;
 	onLongPressAyah: (ayah: Ayah) => void;
 };
 
@@ -24,11 +25,27 @@ export const AyahCard = memo(function AyahCard({
 	arabicFontFamily,
 	isDark,
 	selected,
+	isPinned,
 	onLongPressAyah,
 }: Props) {
 	const c = getAppColors(isDark);
 	const lineHeight = fontSize * 1.85;
 	const markerSize = fontSize * 0.88;
+	const pinBg = isDark ? 'rgba(255, 193, 7, 0.16)' : 'rgba(255, 193, 7, 0.14)';
+	const pinBorder = isDark ? 'rgba(255, 193, 7, 0.45)' : '#E6C35C';
+	const highlightBg = isDark
+		? 'rgba(76, 175, 80, 0.22)'
+		: 'rgba(76, 175, 80, 0.15)';
+	const cardBg = isPinned
+		? pinBg
+		: selected
+			? highlightBg
+			: c.surface;
+	const cardBorder = isPinned
+		? pinBorder
+		: isDark
+			? '#37474F'
+			: '#E8E4D9';
 
 	const handleLongPress = useCallback(() => {
 		if (Platform.OS !== 'web') {
@@ -38,10 +55,6 @@ export const AyahCard = memo(function AyahCard({
 		}
 		onLongPressAyah(ayah);
 	}, [ayah, onLongPressAyah]);
-
-	const highlightBg = isDark
-		? 'rgba(76, 175, 80, 0.22)'
-		: 'rgba(76, 175, 80, 0.15)';
 
 	return (
 		<Pressable
@@ -53,14 +66,15 @@ export const AyahCard = memo(function AyahCard({
 			style={({ pressed }) => [
 				styles.card,
 				{
-					backgroundColor: selected ? highlightBg : c.surface,
-					borderColor: isDark ? '#37474F' : '#E8E4D9',
+					backgroundColor: cardBg,
+					borderColor: cardBorder,
+					borderWidth: isPinned ? 1.5 : StyleSheet.hairlineWidth,
 					shadowColor: isDark ? '#000' : c.cardShadow,
 					opacity: pressed ? 0.92 : 1,
 				},
 			]}
 		>
-			<View style={styles.inner}>
+			<View style={[styles.inner, { backgroundColor: cardBg }]}>
 				<Text
 					style={[
 						styles.ayahText,
@@ -98,7 +112,6 @@ const styles = StyleSheet.create({
 	card: {
 		marginBottom: sp.md + 2,
 		borderRadius: sp.md + 2,
-		borderWidth: StyleSheet.hairlineWidth,
 		overflow: 'hidden',
 		elevation: 1,
 		shadowOffset: { width: 0, height: 1 },
@@ -107,7 +120,7 @@ const styles = StyleSheet.create({
 	},
 	inner: {
 		paddingHorizontal: sp.xl,
-		paddingVertical: sp.lg + 2,
+		paddingVertical: sp.lg,
 		writingDirection: 'rtl',
 	},
 	ayahText: {
