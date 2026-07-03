@@ -50,7 +50,7 @@ export function useAyahAudio(reciterId: string, ayahs: Ayah[]) {
   const [positionMillis, setPositionMillis] = useState(0);
   const [durationMillis, setDurationMillis] = useState(0);
   const [repeatEnabled, setRepeatEnabled] = useState(false);
-  const [autoNextEnabled, setAutoNextEnabled] = useState(false);
+  const [autoNextEnabled, setAutoNextEnabled] = useState(true);
 
   useEffect(() => {
     ayahsRef.current = ayahs;
