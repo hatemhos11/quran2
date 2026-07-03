@@ -4,77 +4,23 @@ import type { Ayah, SurahMeta, SurahWithAyahs } from '@/types';
 
 let dbInstance: SQLite.SQLiteDatabase | null = null;
 
+export function setDbInstance(db: SQLite.SQLiteDatabase): void {
+  dbInstance = db;
+}
+
 export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbInstance) {
-    dbInstance = await SQLite.openDatabaseAsync('quran_reader.db');
+    throw new Error('Database is not initialized');
   }
   return dbInstance;
 }
 
-async function addColumnIfMissing(
-  db: SQLite.SQLiteDatabase,
-  table: string,
-  column: string,
-  definition: string
-): Promise<void> {
-  const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
-  if (!columns.some((c) => c.name === column)) {
-    await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
-  }
-}
-
-export async function initOfflineDb(): Promise<void> {
-  const db = await getDb();
+export async function initBundledDb(db: SQLite.SQLiteDatabase): Promise<void> {
+  setDbInstance(db);
   await db.execAsync(`
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
-    CREATE TABLE IF NOT EXISTS surahs (
-      id INTEGER PRIMARY KEY NOT NULL,
-      name TEXT NOT NULL,
-      englishName TEXT NOT NULL,
-      revelationType TEXT NOT NULL,
-      numberOfAyahs INTEGER NOT NULL,
-      downloadedAt INTEGER
-    );
-    CREATE TABLE IF NOT EXISTS ayahs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      surahId INTEGER NOT NULL,
-      numberInSurah INTEGER NOT NULL,
-      text TEXT NOT NULL,
-      numberInQuran INTEGER NOT NULL,
-      UNIQUE(surahId, numberInSurah),
-      FOREIGN KEY (surahId) REFERENCES surahs(id) ON DELETE CASCADE
-    );
-    CREATE TABLE IF NOT EXISTS tafsir (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ayahId INTEGER NOT NULL,
-      source TEXT NOT NULL,
-      text TEXT NOT NULL,
-      UNIQUE(ayahId, source),
-      FOREIGN KEY (ayahId) REFERENCES ayahs(id) ON DELETE CASCADE
-    );
-    CREATE TABLE IF NOT EXISTS editions (
-      identifier TEXT PRIMARY KEY NOT NULL,
-      language TEXT NOT NULL,
-      name TEXT NOT NULL,
-      englishName TEXT NOT NULL,
-      format TEXT NOT NULL,
-      type TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_ayahs_surah ON ayahs(surahId);
   `);
-
-  await addColumnIfMissing(db, 'surahs', 'englishNameTranslation', 'TEXT');
-  await addColumnIfMissing(db, 'surahs', 'seeded', 'INTEGER NOT NULL DEFAULT 0');
-  await addColumnIfMissing(db, 'ayahs', 'juz', 'INTEGER');
-  await addColumnIfMissing(db, 'ayahs', 'manzil', 'INTEGER');
-  await addColumnIfMissing(db, 'ayahs', 'page', 'INTEGER');
-  await addColumnIfMissing(db, 'ayahs', 'ruku', 'INTEGER');
-  await addColumnIfMissing(db, 'ayahs', 'hizbQuarter', 'INTEGER');
-  await addColumnIfMissing(db, 'ayahs', 'sajda', 'INTEGER NOT NULL DEFAULT 0');
-  await addColumnIfMissing(db, 'ayahs', 'sajdaId', 'INTEGER');
-  await addColumnIfMissing(db, 'ayahs', 'sajdaRecommended', 'INTEGER');
-  await addColumnIfMissing(db, 'ayahs', 'sajdaObligatory', 'INTEGER');
 }
 
 export async function loadAllSurahs(): Promise<SurahMeta[]> {

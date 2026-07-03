@@ -47,9 +47,9 @@ export function AppNavigator() {
 				tabBarActiveTintColor: c.accent,
 				tabBarInactiveTintColor: c.textSecondary,
 				tabBarStyle: {
-					height: 48,
-					paddingTop: 2,
-					paddingBottom: 2,
+					height: 60,
+					paddingTop: 8,
+					paddingBottom: 8,
 					backgroundColor: c.surface,
 					borderTopColor: isDark ? '#37474F' : '#E0E0E0',
 				},
