@@ -12,6 +12,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider as PaperProvider } from 'react-native-paper';
 
 import { AppNavigator } from '@/navigation/AppNavigator';
+import { seedQuranDb } from '@/db/seedFromJson';
 import { initOfflineDb } from '@/services/offlineStorage';
 import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -33,6 +34,7 @@ export default function App() {
     (async () => {
       try {
         await initOfflineDb();
+        await seedQuranDb();
       } finally {
         if (!cancelled) setDbReady(true);
       }

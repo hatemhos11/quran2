@@ -1,5 +1,4 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { DrawerActions } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, {
   useCallback,
@@ -22,17 +21,15 @@ import {
 } from 'react-native-safe-area-context';
 
 import { AyahCard } from '@/components/AyahCard';
-import { DownloadButton } from '@/components/DownloadButton';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 import { SurahHeader } from '@/components/SurahHeader';
 import { TafsirBottomSheet } from '@/components/TafsirBottomSheet';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { ar } from '@/i18n/ar';
-import type { MainStackParamList } from '@/navigation/types';
+import type { SurahsStackParamList } from '@/navigation/types';
 import { getArabicFontFamily } from '@/services/fontLoader';
 import { loadSurahOffline } from '@/services/offlineStorage';
-import { apiFetchSurahWithAyahs } from '@/services/quranApi';
 import { pinnedAyahKey, usePinnedAyahStore } from '@/store/pinnedAyahStore';
 import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -42,7 +39,7 @@ import { sp } from '@/utils/spacing';
 import { isBasmalah, removeBasmalah } from '@/utils/startWithBasmalah';
 import { getAppColors } from '@/utils/theme';
 
-type Props = NativeStackScreenProps<MainStackParamList, 'SurahDetail'>;
+type Props = NativeStackScreenProps<SurahsStackParamList, 'SurahDetail'>;
 
 export function SurahDetailScreen({ navigation, route }: Props) {
 	useOfflineSync();
@@ -57,19 +54,13 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 	const c = getAppColors(isDark);
 
 	const isOffline = useQuranStore((s) => s.isOffline);
-	const downloadedSurahs = useQuranStore((s) => s.downloadedSurahs);
 	const setCurrentSurahNumber = useQuranStore((s) => s.setCurrentSurahNumber);
-	const downloadSurah = useQuranStore((s) => s.downloadSurah);
-	const removeDownload = useQuranStore((s) => s.removeDownload);
-	const refreshDownloaded = useQuranStore((s) => s.refreshDownloaded);
 
 	const [data, setData] = useState<SurahWithAyahs | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [scrollProgress, setScrollProgress] = useState(0);
 	const [showFab, setShowFab] = useState(false);
-	const [dlProgress, setDlProgress] = useState<number | null>(null);
-	const [dlBusy, setDlBusy] = useState(false);
 	const [selectedNumberInSurah, setSelectedNumberInSurah] = useState<
 		number | null
 	>(null);
@@ -100,32 +91,20 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 	}, [surahNumber]);
 
 	useEffect(() => {
-		refreshDownloaded();
-	}, [refreshDownloaded, surahNumber]);
-
-	useEffect(() => {
 		let cancelled = false;
 		(async () => {
 			setLoading(true);
 			setError(null);
 			setData(null);
 			try {
-				if (isOffline) {
-					const local = await loadSurahOffline(surahNumber);
-					if (cancelled) return;
-					if (!local) {
-						setError(ar.surahNotDownloaded);
-						setLoading(false);
-						return;
-					}
-					setData(local);
+				const local = await loadSurahOffline(surahNumber);
+				if (cancelled) return;
+				if (!local) {
+					setError(ar.failedLoadSurah);
 					setLoading(false);
 					return;
 				}
-				const remote = await apiFetchSurahWithAyahs(surahNumber);
-				if (!cancelled) {
-					setData(remote);
-				}
+				setData(local);
 			} catch {
 				if (!cancelled) {
 					setError(ar.failedLoadSurah);
@@ -137,31 +116,7 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		return () => {
 			cancelled = true;
 		};
-	}, [surahNumber, isOffline]);
-
-	const isDownloaded = downloadedSurahs.includes(surahNumber);
-
-	const onDownload = useCallback(async () => {
-		setDlBusy(true);
-		setDlProgress(0);
-		try {
-			await downloadSurah(surahNumber, setDlProgress, !isOffline);
-		} catch (e) {
-			setError(e instanceof Error ? e.message : ar.downloadFailed);
-		} finally {
-			setDlBusy(false);
-			setDlProgress(null);
-		}
-	}, [surahNumber, downloadSurah, isOffline]);
-
-	const onDeleteDl = useCallback(async () => {
-		setDlBusy(true);
-		try {
-			await removeDownload(surahNumber);
-		} finally {
-			setDlBusy(false);
-		}
-	}, [surahNumber, removeDownload]);
+	}, [surahNumber]);
 
 	const openAyah = useCallback((ayah: Ayah) => {
 		setPicked(ayah);
@@ -201,15 +156,6 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 					isDark={isDark}
 					showTransliteration={showTransliteration}
 				/>
-				<DownloadButton
-					isDark={isDark}
-					isOnline={!isOffline}
-					isDownloaded={isDownloaded}
-					progress={dlProgress}
-					busy={dlBusy}
-					onDownload={onDownload}
-					onDelete={onDeleteDl}
-				/>
 				{showBismillah ? (
 					<Text
 						style={[
@@ -232,15 +178,9 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		surahNumber,
 		isDark,
 		showTransliteration,
-		isOffline,
-		isDownloaded,
-		dlProgress,
-		dlBusy,
 		fontSize,
 		arabicFamily,
 		c.arabic,
-		onDownload,
-		onDeleteDl,
 	]);
 
 	if (loading) {
@@ -255,19 +195,11 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 						{ backgroundColor: c.surface },
 					]}
 				>
-					<Appbar.Action
-						icon='menu'
-						onPress={() =>
-							navigation.dispatch(DrawerActions.openDrawer())
-						}
-						accessibilityLabel={ar.openSurahList}
+					<Appbar.BackAction
+						onPress={() => navigation.goBack()}
+						accessibilityLabel={ar.surahs}
 					/>
 					<Appbar.Content title=' ' />
-					<Appbar.Action
-						icon='cog-outline'
-						onPress={() => navigation.navigate('Settings')}
-						accessibilityLabel={ar.settings}
-					/>
 				</Appbar.Header>
 				<LoadingSkeleton isDark={isDark} />
 			</SafeAreaView>
@@ -286,17 +218,8 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 						{ backgroundColor: c.surface },
 					]}
 				>
-					<Appbar.Action
-						icon='menu'
-						onPress={() =>
-							navigation.dispatch(DrawerActions.openDrawer())
-						}
-					/>
+					<Appbar.BackAction onPress={() => navigation.goBack()} />
 					<Appbar.Content title=' ' />
-					<Appbar.Action
-						icon='cog-outline'
-						onPress={() => navigation.navigate('Settings')}
-					/>
 				</Appbar.Header>
 				<EmptyState
 					isDark={isDark}
@@ -318,12 +241,9 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 			<Appbar.Header
 				style={[styles.appBarHeader, { backgroundColor: c.surface }]}
 			>
-				<Appbar.Action
-					icon='menu'
-					onPress={() =>
-						navigation.dispatch(DrawerActions.openDrawer())
-					}
-					accessibilityLabel={ar.openSurahList}
+				<Appbar.BackAction
+					onPress={() => navigation.goBack()}
+					accessibilityLabel={ar.surahs}
 				/>
 				<Appbar.Content
 					title={data.name}
@@ -342,11 +262,6 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 						textAlign: 'center',
 						writingDirection: 'rtl',
 					}}
-				/>
-				<Appbar.Action
-					icon='cog-outline'
-					onPress={() => navigation.navigate('Settings')}
-					accessibilityLabel={ar.settings}
 				/>
 			</Appbar.Header>
 
@@ -444,7 +359,6 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 			<TafsirBottomSheet
 				ref={sheetRef}
 				isDark={isDark}
-				isOnline={!isOffline}
 				surahNumber={surahNumber}
 				surahEnglishName={data.englishName}
 				ayah={picked}

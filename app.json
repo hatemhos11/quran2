@@ -1,48 +1,49 @@
 {
-  "expo": {
-    "name": "مصحف",
-    "slug": "quran2",
-    "version": "1.0.0",
-    "orientation": "default",
-    "icon": "./assets/images/icon.png",
-    "scheme": "quran2",
-    "userInterfaceStyle": "automatic",
-    "ios": {
-      "icon": "./assets/expo.icon",
-      "supportsTablet": true
-    },
-    "android": {
-      "supportsRtl": true,
-      "adaptiveIcon": {
-        "backgroundColor": "#0E3B31",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "package": "com.hatemhos111.quran2"
-    },
-    "web": {
-      "output": "single",
-      "favicon": "./assets/images/favicon.png"
-    },
-    "plugins": [
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#FAF9F6",
-          "android": {
-            "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
-          }
-        }
-      ],
-      "expo-sqlite",
-      "expo-font"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "1cdb11c5-c303-4927-9e3b-2f7e37c6db56"
-      }
-    }
-  }
+	"expo": {
+		"name": "quran",
+		"slug": "quran2",
+		"version": "1.0.0",
+		"orientation": "default",
+		"icon": "./assets/images/icon.png",
+		"scheme": "quran2",
+		"userInterfaceStyle": "automatic",
+		"ios": {
+			"icon": "./assets/expo.icon",
+			"supportsTablet": true
+		},
+		"android": {
+			"supportsRtl": true,
+			"adaptiveIcon": {
+				"backgroundColor": "#0E3B31",
+				"foregroundImage": "./assets/images/android-icon-foreground.png",
+				"backgroundImage": "./assets/images/android-icon-background.png",
+				"monochromeImage": "./assets/images/android-icon-monochrome.png"
+			},
+			"package": "com.hatemhos111.quran2"
+		},
+		"web": {
+			"output": "single",
+			"favicon": "./assets/images/favicon.png"
+		},
+		"plugins": [
+			[
+				"expo-splash-screen",
+				{
+					"backgroundColor": "#FAF9F6",
+					"android": {
+						"image": "./assets/images/splash-icon.png",
+						"imageWidth": 76
+					}
+				}
+			],
+			"expo-sqlite",
+			"expo-font"
+		],
+		"extra": {
+			"eas": {
+				"projectId": "1cdb11c5-c303-4927-9e3b-2f7e37c6db56"
+			}
+		}
+	}
 }
+

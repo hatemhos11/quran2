@@ -1,60 +1,110 @@
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React from 'react';
 
 import { ar } from '@/i18n/ar';
+import { AzkarScreen } from '@/screens/AzkarScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 import { SurahDetailScreen } from '@/screens/SurahDetailScreen';
 import { SurahListScreen } from '@/screens/SurahListScreen';
+import { useSettingsStore } from '@/store/settingsStore';
+import { getAppColors } from '@/utils/theme';
 
-import type { MainStackParamList, RootDrawerParamList } from './types';
+import type { RootTabParamList, SurahsStackParamList } from './types';
 
-const Drawer = createDrawerNavigator<RootDrawerParamList>();
-const Stack = createNativeStackNavigator<MainStackParamList>();
+const Tab = createBottomTabNavigator<RootTabParamList>();
+const SurahsStack = createNativeStackNavigator<SurahsStackParamList>();
 
-function MainStackNavigator() {
+const TAB_ICON_SIZE = 20;
+
+function SurahsStackNavigator() {
 	return (
-		<Stack.Navigator
-			initialRouteName='SurahDetail'
+		<SurahsStack.Navigator
+			initialRouteName='SurahList'
 			screenOptions={{
-				headerShadowVisible: false,
+				headerShown: false,
 				animation: 'fade_from_bottom',
 			}}
 		>
-			<Stack.Screen
+			<SurahsStack.Screen name='SurahList' component={SurahListScreen} />
+			<SurahsStack.Screen
 				name='SurahDetail'
 				component={SurahDetailScreen}
-				initialParams={{ surahNumber: 1 }}
-				options={{ headerShown: false }}
 			/>
-			<Stack.Screen
-				name='Settings'
-				component={SettingsScreen}
-				options={{
-					title: ar.settings,
-					headerShown: true,
-					headerStyle: { direction: 'ltr' },
-					headerTitleStyle: { writingDirection: 'rtl' },
-				}}
-			/>
-		</Stack.Navigator>
+		</SurahsStack.Navigator>
 	);
 }
 
 export function AppNavigator() {
+	const isDark = useSettingsStore((s) => s.theme) === 'dark';
+	const c = getAppColors(isDark);
+
 	return (
-		<Drawer.Navigator
-			drawerContent={(props) => <SurahListScreen {...props} />}
+		<Tab.Navigator
 			screenOptions={{
 				headerShown: false,
-				drawerType: 'front',
-				drawerPosition: 'right',
-				// LTR drawer: opens from the physical left, standard swipe + layout (avoids RTL drawer bugs).
-				drawerStyle: { width: '92%', maxWidth: 360 },
-				overlayColor: 'rgba(0,0,0,0.35)',
+				tabBarActiveTintColor: c.accent,
+				tabBarInactiveTintColor: c.textSecondary,
+				tabBarStyle: {
+					height: 48,
+					paddingTop: 2,
+					paddingBottom: 2,
+					backgroundColor: c.surface,
+					borderTopColor: isDark ? '#37474F' : '#E0E0E0',
+				},
+				tabBarLabelStyle: {
+					fontSize: 11,
+					marginBottom: 3,
+				},
+				tabBarIconStyle: {
+					marginTop: 1,
+				},
 			}}
 		>
-			<Drawer.Screen name='Main' component={MainStackNavigator} />
-		</Drawer.Navigator>
+			<Tab.Screen
+				name='Surahs'
+				component={SurahsStackNavigator}
+				options={{
+					title: ar.surahs,
+					tabBarIcon: ({ color }) => (
+						<MaterialCommunityIcons
+							name='book-open-page-variant'
+							size={TAB_ICON_SIZE}
+							color={color}
+						/>
+					),
+				}}
+			/>
+			<Tab.Screen
+				name='Azkar'
+				component={AzkarScreen}
+				options={{
+					title: ar.azkar,
+					tabBarIcon: ({ color }) => (
+						<MaterialCommunityIcons
+							name='hands-pray'
+							size={TAB_ICON_SIZE}
+							color={color}
+						/>
+					),
+				}}
+			/>
+			<Tab.Screen
+				name='Settings'
+				component={SettingsScreen}
+				options={{
+					title: ar.settings,
+					tabBarIcon: ({ color }) => (
+						<MaterialCommunityIcons
+							name='cog-outline'
+							size={TAB_ICON_SIZE}
+							color={color}
+						/>
+					),
+				}}
+			/>
+		</Tab.Navigator>
 	);
 }
 

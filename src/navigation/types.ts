@@ -1,8 +1,10 @@
-export type MainStackParamList = {
+export type SurahsStackParamList = {
+  SurahList: undefined;
   SurahDetail: { surahNumber: number };
-  Settings: undefined;
 };
 
-export type RootDrawerParamList = {
-  Main: undefined;
+export type RootTabParamList = {
+  Surahs: undefined;
+  Azkar: undefined;
+  Settings: undefined;
 };

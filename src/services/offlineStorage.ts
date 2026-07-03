@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
-import type { Ayah, SurahMeta, SurahWithAyahs, TafsirEdition } from '@/types';
+import type { Ayah, SurahMeta, SurahWithAyahs } from '@/types';
 
 let dbInstance: SQLite.SQLiteDatabase | null = null;
 
@@ -9,6 +9,18 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
     dbInstance = await SQLite.openDatabaseAsync('quran_reader.db');
   }
   return dbInstance;
+}
+
+async function addColumnIfMissing(
+  db: SQLite.SQLiteDatabase,
+  table: string,
+  column: string,
+  definition: string
+): Promise<void> {
+  const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+  if (!columns.some((c) => c.name === column)) {
+    await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
 }
 
 export async function initOfflineDb(): Promise<void> {
@@ -41,25 +53,51 @@ export async function initOfflineDb(): Promise<void> {
       UNIQUE(ayahId, source),
       FOREIGN KEY (ayahId) REFERENCES ayahs(id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS editions (
+      identifier TEXT PRIMARY KEY NOT NULL,
+      language TEXT NOT NULL,
+      name TEXT NOT NULL,
+      englishName TEXT NOT NULL,
+      format TEXT NOT NULL,
+      type TEXT NOT NULL
+    );
     CREATE INDEX IF NOT EXISTS idx_ayahs_surah ON ayahs(surahId);
   `);
+
+  await addColumnIfMissing(db, 'surahs', 'englishNameTranslation', 'TEXT');
+  await addColumnIfMissing(db, 'surahs', 'seeded', 'INTEGER NOT NULL DEFAULT 0');
+  await addColumnIfMissing(db, 'ayahs', 'juz', 'INTEGER');
+  await addColumnIfMissing(db, 'ayahs', 'manzil', 'INTEGER');
+  await addColumnIfMissing(db, 'ayahs', 'page', 'INTEGER');
+  await addColumnIfMissing(db, 'ayahs', 'ruku', 'INTEGER');
+  await addColumnIfMissing(db, 'ayahs', 'hizbQuarter', 'INTEGER');
+  await addColumnIfMissing(db, 'ayahs', 'sajda', 'INTEGER NOT NULL DEFAULT 0');
+  await addColumnIfMissing(db, 'ayahs', 'sajdaId', 'INTEGER');
+  await addColumnIfMissing(db, 'ayahs', 'sajdaRecommended', 'INTEGER');
+  await addColumnIfMissing(db, 'ayahs', 'sajdaObligatory', 'INTEGER');
 }
 
-export async function isSurahDownloaded(surahNumber: number): Promise<boolean> {
+export async function loadAllSurahs(): Promise<SurahMeta[]> {
   const db = await getDb();
-  const row = await db.getFirstAsync<{ c: number }>(
-    'SELECT COUNT(*) as c FROM surahs WHERE id = ? AND downloadedAt IS NOT NULL',
-    [surahNumber]
+  const rows = await db.getAllAsync<{
+    id: number;
+    name: string;
+    englishName: string;
+    englishNameTranslation: string | null;
+    revelationType: string;
+    numberOfAyahs: number;
+  }>(
+    `SELECT id, name, englishName, englishNameTranslation, revelationType, numberOfAyahs
+     FROM surahs ORDER BY id`
   );
-  return (row?.c ?? 0) > 0;
-}
-
-export async function listDownloadedSurahNumbers(): Promise<number[]> {
-  const db = await getDb();
-  const rows = await db.getAllAsync<{ id: number }>(
-    'SELECT id FROM surahs WHERE downloadedAt IS NOT NULL ORDER BY id'
-  );
-  return rows.map((r) => r.id);
+  return rows.map((r) => ({
+    number: r.id,
+    name: r.name,
+    englishName: r.englishName,
+    englishNameTranslation: r.englishNameTranslation ?? undefined,
+    revelationType: r.revelationType as SurahMeta['revelationType'],
+    numberOfAyahs: r.numberOfAyahs,
+  }));
 }
 
 export async function loadSurahOffline(surahNumber: number): Promise<SurahWithAyahs | null> {
@@ -68,9 +106,10 @@ export async function loadSurahOffline(surahNumber: number): Promise<SurahWithAy
     id: number;
     name: string;
     englishName: string;
+    englishNameTranslation: string | null;
     revelationType: string;
     numberOfAyahs: number;
-  }>('SELECT * FROM surahs WHERE id = ? AND downloadedAt IS NOT NULL', [surahNumber]);
+  }>('SELECT * FROM surahs WHERE id = ?', [surahNumber]);
   if (!surah) return null;
   const ayahRows = await db.getAllAsync<{
     numberInSurah: number;
@@ -89,6 +128,7 @@ export async function loadSurahOffline(surahNumber: number): Promise<SurahWithAy
     number: surah.id,
     name: surah.name,
     englishName: surah.englishName,
+    englishNameTranslation: surah.englishNameTranslation ?? undefined,
     revelationType: surah.revelationType as SurahWithAyahs['revelationType'],
     numberOfAyahs: surah.numberOfAyahs,
     ayahs,
@@ -117,94 +157,4 @@ export async function loadTafsirOffline(
     [surahNumber, numberInSurah, source]
   );
   return row?.text ?? null;
-}
-
-export async function saveTafsirLine(
-  ayahId: number,
-  source: string,
-  text: string
-): Promise<void> {
-  const db = await getDb();
-  await db.runAsync(
-    `INSERT OR REPLACE INTO tafsir (ayahId, source, text)
-     VALUES (?, ?, ?)`,
-    [ayahId, source, text]
-  );
-}
-
-export async function deleteSurahDownload(surahNumber: number): Promise<void> {
-  const db = await getDb();
-  await db.runAsync('DELETE FROM surahs WHERE id = ?', [surahNumber]);
-}
-
-export async function saveFullSurahDownload(
-  meta: SurahMeta,
-  ayahs: Ayah[],
-  tafsirByAyah: Map<number, Partial<Record<TafsirEdition, string>>>
-): Promise<void> {
-  const db = await getDb();
-  const now = Date.now();
-  try {
-    await db.execAsync('BEGIN IMMEDIATE');
-    await db.runAsync('DELETE FROM surahs WHERE id = ?', [meta.number]);
-    await db.runAsync(
-      `INSERT INTO surahs (id, name, englishName, revelationType, numberOfAyahs, downloadedAt)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        meta.number,
-        meta.name,
-        meta.englishName,
-        meta.revelationType,
-        meta.numberOfAyahs,
-        now,
-      ]
-    );
-    for (const a of ayahs) {
-      await db.runAsync(
-        `INSERT INTO ayahs (surahId, numberInSurah, text, numberInQuran)
-         VALUES (?, ?, ?, ?)`,
-        [meta.number, a.numberInSurah, a.text, a.numberInQuran]
-      );
-      const row = await db.getFirstAsync<{ id: number }>(
-        'SELECT id FROM ayahs WHERE surahId = ? AND numberInSurah = ?',
-        [meta.number, a.numberInSurah]
-      );
-      if (!row) continue;
-      const editions = tafsirByAyah.get(a.numberInSurah);
-      if (!editions) continue;
-      for (const [src, txt] of Object.entries(editions)) {
-        if (txt) {
-          await db.runAsync(`INSERT INTO tafsir (ayahId, source, text) VALUES (?, ?, ?)`, [
-            row.id,
-            src,
-            txt,
-          ]);
-        }
-      }
-    }
-    await db.execAsync('COMMIT');
-  } catch (e) {
-    try {
-      await db.execAsync('ROLLBACK');
-    } catch {
-      /* ignore */
-    }
-    throw e;
-  }
-}
-
-export async function clearAllOfflineData(): Promise<void> {
-  const db = await getDb();
-  await db.runAsync('DELETE FROM surahs');
-}
-
-export async function getApproxStorageBytes(): Promise<number> {
-  const db = await getDb();
-  const row = await db.getFirstAsync<{ n: number }>(
-    'SELECT IFNULL(SUM(LENGTH(text)), 0) as n FROM ayahs'
-  );
-  const row2 = await db.getFirstAsync<{ n: number }>(
-    'SELECT IFNULL(SUM(LENGTH(text)), 0) as n FROM tafsir'
-  );
-  return (row?.n ?? 0) + (row2?.n ?? 0);
 }

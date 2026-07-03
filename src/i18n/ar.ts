@@ -3,6 +3,8 @@ import { ayahWordAr } from '../utils/ayahWordAr';
 /** واجهة المستخدم بالعربية */
 export const ar = {
   surahs: 'السور',
+  azkar: 'أذكار',
+  comingSoon: 'قريباً',
   searchPlaceholder: 'ابحث بالاسم أو الرقم',
   couldNotLoadSurahs: 'تعذر تحميل السور',
   tryAgain: 'إعادة المحاولة',
@@ -84,10 +86,8 @@ export const ar = {
   downloadAllSomeFailed: (n: number) =>
     `تعذر تنزيل ${n} سورة. يمكنك المحاولة لاحقاً من شاشة السورة.`,
   about: 'حول',
-  appName: 'مصحف',
-  aboutDesc: (y: string) => `النص عبر خدمة القرآن الكريم · ${y}`,
-  api: 'واجهة البرمجة',
-  apiHost: 'api.alquran.cloud',
+  appName: 'quran',
+  aboutDesc: (y: string) => `القرآن والتفسير محفوظان محلياً · ${y}`,
   version: 'الإصدار',
   removeAllTitle: 'حذف كل التنزيلات؟',
   removeAllMessage:

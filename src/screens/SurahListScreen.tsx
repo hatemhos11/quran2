@@ -1,5 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import type { DrawerContentComponentProps } from '@react-navigation/drawer';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
@@ -9,18 +8,20 @@ import {
   View,
 } from 'react-native';
 import { Divider, Searchbar, Text } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/EmptyState';
 import { ar } from '@/i18n/ar';
+import type { SurahsStackParamList } from '@/navigation/types';
 import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { SurahMeta } from '@/types';
 import { sp } from '@/utils/spacing';
 import { getAppColors } from '@/utils/theme';
 
-export function SurahListScreen({ navigation }: DrawerContentComponentProps) {
-	const insets = useSafeAreaInsets();
+type Props = NativeStackScreenProps<SurahsStackParamList, 'SurahList'>;
+
+export function SurahListScreen({ navigation }: Props) {
 	const isDark = useSettingsStore((s) => s.theme) === 'dark';
 	const c = getAppColors(isDark);
 
@@ -28,9 +29,7 @@ export function SurahListScreen({ navigation }: DrawerContentComponentProps) {
 	const surahsLoading = useQuranStore((s) => s.surahsLoading);
 	const surahsError = useQuranStore((s) => s.surahsError);
 	const loadSurahs = useQuranStore((s) => s.loadSurahs);
-	const downloadedSurahs = useQuranStore((s) => s.downloadedSurahs);
 	const currentSurahNumber = useQuranStore((s) => s.currentSurahNumber);
-	const refreshDownloaded = useQuranStore((s) => s.refreshDownloaded);
 
 	const [query, setQuery] = useState('');
 	const [refreshing, setRefreshing] = useState(false);
@@ -41,19 +40,14 @@ export function SurahListScreen({ navigation }: DrawerContentComponentProps) {
 		}
 	}, [surahs.length, surahsLoading, surahsError, loadSurahs]);
 
-	useEffect(() => {
-		refreshDownloaded();
-	}, [refreshDownloaded]);
-
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
 		try {
 			await loadSurahs();
-			await refreshDownloaded();
 		} finally {
 			setRefreshing(false);
 		}
-	}, [loadSurahs, refreshDownloaded]);
+	}, [loadSurahs]);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
@@ -68,21 +62,13 @@ export function SurahListScreen({ navigation }: DrawerContentComponentProps) {
 
 	const openSurah = useCallback(
 		(n: number) => {
-			navigation.navigate(
-				'Main' as never,
-				{
-					screen: 'SurahDetail',
-					params: { surahNumber: n },
-				} as never,
-			);
-			navigation.closeDrawer();
+			navigation.navigate('SurahDetail', { surahNumber: n });
 		},
 		[navigation],
 	);
 
 	const renderItem = useCallback(
 		({ item: s }: { item: SurahMeta }) => {
-			const saved = downloadedSurahs.includes(s.number);
 			const active = s.number === currentSurahNumber;
 			const madani = s.revelationType === 'Medinan';
 			return (
@@ -136,36 +122,22 @@ export function SurahListScreen({ navigation }: DrawerContentComponentProps) {
 								</Text>
 							</View>
 						</View>
-						<MaterialCommunityIcons
-							name={
-								saved ? 'cloud-check-outline' : 'cloud-outline'
-							}
-							size={20}
-							color={saved ? c.accent : c.textSecondary}
-						/>
 					</View>
 				</TouchableOpacity>
 			);
 		},
-		[c, currentSurahNumber, downloadedSurahs, openSurah],
+		[c, currentSurahNumber, openSurah],
 	);
 
 	if (surahsError && surahs.length === 0) {
 		return (
-			<View
-				style={[
-					styles.drawerRoot,
-					styles.ltr,
-					{
-						paddingTop: insets.top,
-						backgroundColor: c.background,
-						paddingBottom: insets.bottom,
-					},
-				]}
+			<SafeAreaView
+				style={[styles.root, { backgroundColor: c.background }]}
+				edges={['top']}
 			>
 				<Text
 					variant='titleLarge'
-					style={[styles.drawerTitle, { color: c.text }]}
+					style={[styles.title, { color: c.text }]}
 				>
 					{ar.surahs}
 				</Text>
@@ -175,22 +147,21 @@ export function SurahListScreen({ navigation }: DrawerContentComponentProps) {
 					message={surahsError}
 					onRetry={loadSurahs}
 				/>
-			</View>
+			</SafeAreaView>
 		);
 	}
 
 	return (
-		<View
-			style={[
-				styles.drawerRoot,
-				styles.ltr,
-				{
-					paddingTop: insets.top,
-					backgroundColor: c.background,
-					paddingBottom: insets.bottom,
-				},
-			]}
+		<SafeAreaView
+			style={[styles.root, { backgroundColor: c.background }]}
+			edges={['top']}
 		>
+			<Text
+				variant='titleMedium'
+				style={[styles.title, { color: c.text }]}
+			>
+				{ar.surahs}
+			</Text>
 			<Searchbar
 				placeholder={ar.searchPlaceholder}
 				value={query}
@@ -243,21 +214,25 @@ export function SurahListScreen({ navigation }: DrawerContentComponentProps) {
 					)
 				}
 			/>
-		</View>
+		</SafeAreaView>
 	);
 }
 
 const styles = StyleSheet.create({
-	drawerRoot: { flex: 1, width: '92%', alignSelf: 'flex-end' },
-	ltr: { direction: 'ltr' },
-	list: { flex: 1, width: '100%' },
-	listContent: { flexGrow: 1, paddingBottom: sp.md },
-	drawerTitle: { paddingHorizontal: sp.lg, paddingVertical: sp.md },
+	root: { flex: 1 },
+	title: {
+		paddingHorizontal: sp.lg,
+		paddingTop: sp.sm,
+		paddingBottom: sp.xs,
+		textAlign: 'center',
+		writingDirection: 'rtl',
+	},
+	list: { flex: 1 },
+	listContent: { flexGrow: 1, paddingBottom: sp.sm },
 	search: {
 		marginHorizontal: sp.md,
 		marginBottom: sp.sm,
-		maxWidth: 250,
-		alignSelf: 'center',
+		elevation: 0,
 	},
 	item: { paddingVertical: sp.md, paddingHorizontal: sp.lg },
 	itemRow: { flexDirection: 'row', alignItems: 'center', gap: sp.md },
@@ -265,7 +240,5 @@ const styles = StyleSheet.create({
 	itemMid: { flex: 1, gap: 2 },
 	ar: { fontSize: 17, textAlign: 'right', writingDirection: 'rtl' },
 	sub: { fontSize: 12, textAlign: 'right' },
-	tagRow: { flexDirection: 'row', marginTop: 2 },
 	tag: { fontSize: 11, fontWeight: '600' },
 });
-

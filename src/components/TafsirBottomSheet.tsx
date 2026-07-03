@@ -7,10 +7,10 @@ import { Button, IconButton, Text } from 'react-native-paper';
 import * as Haptics from 'expo-haptics';
 
 import { ar } from '@/i18n/ar';
-import { apiFetchTafsir } from '@/services/quranApi';
 import { loadTafsirOffline } from '@/services/offlineStorage';
 import type { Ayah } from '@/types';
 import { MUYASSAR_TAFSIR_ID } from '@/utils/constants';
+import { parseTafsirHtml, stripTafsirHtml } from '@/utils/tafsirText';
 import { sp } from '@/utils/spacing';
 import { getAppColors } from '@/utils/theme';
 
@@ -18,7 +18,6 @@ export type TafsirSheetRef = BottomSheetModal;
 
 type Props = {
   isDark: boolean;
-  isOnline: boolean;
   surahNumber: number;
   surahEnglishName: string;
   ayah: Ayah | null;
@@ -29,7 +28,7 @@ type Props = {
 };
 
 export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(function TafsirBottomSheet(
-  { isDark, isOnline, surahNumber, surahEnglishName, ayah, ayahIsPinned, onTogglePin, onDismiss },
+  { isDark, surahNumber, surahEnglishName, ayah, ayahIsPinned, onTogglePin, onDismiss },
   ref
 ) {
   const c = getAppColors(isDark);
@@ -56,18 +55,9 @@ export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(function Ta
           ayah.numberInSurah,
           MUYASSAR_TAFSIR_ID
         );
-        if (!cancelled && local) {
-          setBody(local);
-          setLoading(false);
-          return;
+        if (!cancelled) {
+          setBody(local || ar.noTafsir);
         }
-        if (!isOnline) {
-          if (!cancelled) setBody(ar.tafsirOfflineUnavailable);
-          if (!cancelled) setLoading(false);
-          return;
-        }
-        const remote = await apiFetchTafsir(ayah.numberInQuran, MUYASSAR_TAFSIR_ID);
-        if (!cancelled) setBody(remote || ar.noTafsir);
       } catch {
         if (!cancelled) setBody(ar.tafsirLoadError);
       } finally {
@@ -77,7 +67,7 @@ export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(function Ta
     return () => {
       cancelled = true;
     };
-  }, [ayah, isOnline, surahNumber]);
+  }, [ayah, surahNumber]);
 
   const backdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -88,16 +78,19 @@ export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(function Ta
 
   const snapPoints = useMemo(() => ['48%', '88%'], []);
 
+  const tafsirSegments = useMemo(() => parseTafsirHtml(body), [body]);
+  const plainBody = useMemo(() => stripTafsirHtml(body), [body]);
+
   const onCopy = async () => {
     if (!ayah) return;
-    const block = `${ayah.text}\n\n${body}`;
+    const block = `${ayah.text}\n\n${plainBody}`;
     await Clipboard.setStringAsync(block);
   };
 
   const onShare = async () => {
     if (!ayah) return;
     await Share.share({
-      message: `${ayah.text}\n\n— ${surahEnglishName} ${surahNumber}:${ayah.numberInSurah}\n\n${body}`,
+      message: `${ayah.text}\n\n— ${surahEnglishName} ${surahNumber}:${ayah.numberInSurah}\n\n${plainBody}`,
     });
   };
 
@@ -146,7 +139,21 @@ export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(function Ta
               <ActivityIndicator color={c.accent} style={{ marginVertical: sp.lg }} />
             ) : (
               <Text variant="bodyLarge" style={[styles.tafsirBody, { color: c.text, writingDirection: 'rtl' }]}>
-                {body || '—'}
+                {tafsirSegments.length > 0
+                  ? tafsirSegments.map((seg, i) => (
+                      <Text
+                        key={i}
+                        style={
+                          seg.highlight === 'green'
+                            ? { color: c.accent, fontWeight: '600' }
+                            : seg.highlight === 'blue'
+                              ? { color: c.accentMuted, fontWeight: '600' }
+                              : undefined
+                        }>
+                        {seg.text}
+                      </Text>
+                    ))
+                  : '—'}
               </Text>
             )}
             <View style={styles.actions}>
