@@ -1,12 +1,16 @@
 import Slider from '@react-native-community/slider';
 import dayjs from 'dayjs';
 import Constants from 'expo-constants';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Divider, List, Switch, Text } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { ar } from '@/i18n/ar';
+import type { SettingsStackParamList } from '@/navigation/types';
+import { useReciterStore } from '@/store/reciterStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { ReadingFontId, ThemeMode } from '@/types';
 import { FONT_SIZE_MAX, FONT_SIZE_MIN } from '@/utils/constants';
@@ -14,6 +18,7 @@ import { sp } from '@/utils/spacing';
 import { getAppColors } from '@/utils/theme';
 
 export function SettingsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<SettingsStackParamList>>();
   const insets = useSafeAreaInsets();
   const isDark = useSettingsStore((s) => s.theme) === 'dark';
   const c = getAppColors(isDark);
@@ -26,6 +31,19 @@ export function SettingsScreen() {
   const setShowTransliteration = useSettingsStore((s) => s.setShowTransliteration);
   const readingFont = useSettingsStore((s) => s.readingFont);
   const setReadingFont = useSettingsStore((s) => s.setReadingFont);
+  const preferredReciter = useSettingsStore((s) => s.preferredReciter);
+
+  const reciters = useReciterStore((s) => s.reciters);
+  const loadReciters = useReciterStore((s) => s.loadReciters);
+
+  useEffect(() => {
+    void loadReciters();
+  }, [loadReciters]);
+
+  const reciterLabel = useMemo(() => {
+    const match = reciters.find((r) => r.identifier === preferredReciter);
+    return match?.name ?? ar.reciterDefaultLabel;
+  }, [preferredReciter, reciters]);
 
   const previewArabic = useMemo(() => 'قُلْ هُوَ اللَّهُ أَحَدٌ', []);
 
@@ -97,6 +115,18 @@ export function SettingsScreen() {
               }
             />
           ))}
+        </List.Section>
+
+        <List.Section>
+          <List.Subheader style={{ color: c.textSecondary }}>{ar.recitation}</List.Subheader>
+          <List.Item
+            title={ar.defaultReciter}
+            description={reciterLabel}
+            titleStyle={{ color: c.text }}
+            descriptionStyle={{ color: c.textSecondary, writingDirection: 'rtl', textAlign: 'right' }}
+            onPress={() => navigation.navigate('ReciterPicker')}
+            right={(props) => <List.Icon {...props} icon="chevron-left" />}
+          />
         </List.Section>
 
         <List.Section>

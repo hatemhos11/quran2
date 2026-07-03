@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import React, { memo, useCallback } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { ActivityIndicator, IconButton, Text } from 'react-native-paper';
 
 import { ar } from '@/i18n/ar';
 import type { Ayah } from '@/types';
@@ -16,6 +16,10 @@ type Props = {
 	isDark: boolean;
 	selected: boolean;
 	isPinned: boolean;
+	isActive: boolean;
+	isPlaying: boolean;
+	isLoadingAudio: boolean;
+	onPressPlay: (ayah: Ayah) => void;
 	onLongPressAyah: (ayah: Ayah) => void;
 };
 
@@ -26,6 +30,10 @@ export const AyahCard = memo(function AyahCard({
 	isDark,
 	selected,
 	isPinned,
+	isActive,
+	isPlaying,
+	isLoadingAudio,
+	onPressPlay,
 	onLongPressAyah,
 }: Props) {
 	const c = getAppColors(isDark);
@@ -36,16 +44,31 @@ export const AyahCard = memo(function AyahCard({
 	const highlightBg = isDark
 		? 'rgba(76, 175, 80, 0.22)'
 		: 'rgba(76, 175, 80, 0.15)';
-	const cardBg = isPinned
+	const cardBg = isActive
+		? isDark
+			? 'rgba(76, 175, 80, 0.18)'
+			: 'rgba(76, 175, 80, 0.12)'
+		: isPinned
 		? pinBg
 		: selected
 			? highlightBg
 			: c.surface;
-	const cardBorder = isPinned
+	const cardBorder = isActive
+		? c.accent
+		: isPinned
 		? pinBorder
 		: isDark
 			? '#37474F'
 			: '#E8E4D9';
+
+	const handlePlayPress = useCallback(() => {
+		if (Platform.OS !== 'web') {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+				() => undefined,
+			);
+		}
+		onPressPlay(ayah);
+	}, [ayah, onPressPlay]);
 
 	const handleLongPress = useCallback(() => {
 		if (Platform.OS !== 'web') {
@@ -74,6 +97,24 @@ export const AyahCard = memo(function AyahCard({
 				},
 			]}
 		>
+			<View style={styles.toolbar}>
+				<IconButton
+					icon={isActive && isPlaying ? 'pause' : 'play'}
+					size={22}
+					onPress={handlePlayPress}
+					disabled={isLoadingAudio}
+					iconColor={isActive ? c.accent : c.textSecondary}
+					accessibilityLabel={
+						isActive && isPlaying
+							? ar.pauseAyahAudioA11y
+							: ar.playAyahAudioA11y
+					}
+					style={styles.playButton}
+				/>
+				{isLoadingAudio ? (
+					<ActivityIndicator size="small" color={c.accent} style={styles.playSpinner} />
+				) : null}
+			</View>
 			<View style={[styles.inner, { backgroundColor: cardBg }]}>
 				<Text
 					style={[
@@ -117,6 +158,18 @@ const styles = StyleSheet.create({
 		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.06,
 		shadowRadius: 3,
+	},
+	toolbar: {
+		flexDirection: 'row-reverse',
+		alignItems: 'center',
+		paddingHorizontal: sp.xs,
+		paddingTop: sp.xs,
+	},
+	playButton: {
+		margin: 0,
+	},
+	playSpinner: {
+		marginRight: sp.sm,
 	},
 	inner: {
 		paddingHorizontal: sp.xl,

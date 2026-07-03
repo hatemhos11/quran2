@@ -5,15 +5,14 @@ import { ScheherazadeNew_400Regular } from '@expo-google-fonts/scheherazade-new'
 import { useFonts } from 'expo-font';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { NavigationContainer } from '@react-navigation/native';
-import { SQLiteProvider } from 'expo-sqlite';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider as PaperProvider } from 'react-native-paper';
 
 import { AppNavigator } from '@/navigation/AppNavigator';
-import { initBundledDb } from '@/services/offlineStorage';
+import { openBundledDatabase } from '@/services/offlineStorage';
 import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { buildNavigationTheme, buildPaperTheme } from '@/utils/theme';
@@ -50,28 +49,35 @@ export default function App() {
     Amiri_700Bold,
     ScheherazadeNew_400Regular,
   });
+  const [dbReady, setDbReady] = useState(false);
 
   const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) {
+    if (fontsLoaded && dbReady) {
       await SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, dbReady]);
+
+  useEffect(() => {
+    let cancelled = false;
+    openBundledDatabase()
+      .then(() => {
+        if (!cancelled) setDbReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) setDbReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     onLayoutRootView();
   }, [onLayoutRootView]);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !dbReady) {
     return null;
   }
 
-  return (
-    <SQLiteProvider
-      databaseName="quran_reader.db"
-      assetSource={{ assetId: require('./assets/quran_reader.db') }}
-      onInit={initBundledDb}
-    >
-      <AppShell onLayout={onLayoutRootView} />
-    </SQLiteProvider>
-  );
+  return <AppShell onLayout={onLayoutRootView} />;
 }

@@ -9,8 +9,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-QURAN_JSON = ROOT / "scripts/seed-data/quran-db.json"
-TAFSIR_JSON = ROOT / "scripts/seed-data/tafsir-muyassar.json"
+QURAN_JSON = ROOT / "src/store/quran-db.json"
+TAFSIR_JSON = ROOT / "src/store/Tafsir Muyassar.json"
+AZKAR_JSON = ROOT / "src/store/azkar_obj.json"
 OUTPUT = ROOT / "assets/quran_reader.db"
 MUYASSAR_ID = "ar.muyassar"
 
@@ -83,6 +84,17 @@ def init_schema(conn: sqlite3.Connection) -> None:
           type TEXT NOT NULL
         );
         CREATE INDEX idx_ayahs_surah ON ayahs(surahId);
+        CREATE TABLE azkar (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          category TEXT NOT NULL,
+          text TEXT NOT NULL,
+          count INTEGER NOT NULL DEFAULT 1,
+          description TEXT,
+          reference TEXT,
+          sortOrder INTEGER NOT NULL
+        );
+        CREATE INDEX idx_azkar_category ON azkar(category);
+        CREATE INDEX idx_azkar_sort ON azkar(sortOrder);
         """
     )
 
@@ -174,12 +186,42 @@ def seed_tafsir(conn: sqlite3.Connection, tafsir_json: dict) -> None:
         )
 
 
+def normalize_azkar_count(value) -> int:
+    if value is None or value == "":
+        return 1
+    try:
+        return max(1, int(value))
+    except (TypeError, ValueError):
+        return 1
+
+
+def seed_azkar(conn: sqlite3.Connection, items: list[dict]) -> None:
+    for index, item in enumerate(items):
+        conn.execute(
+            """
+            INSERT INTO azkar (category, text, count, description, reference, sortOrder)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                item["category"].strip(),
+                item["zekr"].strip(),
+                normalize_azkar_count(item.get("count")),
+                (item.get("description") or "").strip() or None,
+                (item.get("reference") or "").strip() or None,
+                index + 1,
+            ),
+        )
+
+
 def main() -> int:
     if not QURAN_JSON.exists():
         print(f"Missing {QURAN_JSON}", file=sys.stderr)
         return 1
     if not TAFSIR_JSON.exists():
         print(f"Missing {TAFSIR_JSON}", file=sys.stderr)
+        return 1
+    if not AZKAR_JSON.exists():
+        print(f"Missing {AZKAR_JSON}", file=sys.stderr)
         return 1
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
@@ -190,18 +232,22 @@ def main() -> int:
         quran_data = json.load(f)
     with open(TAFSIR_JSON, encoding="utf-8") as f:
         tafsir_data = json.load(f)
+    with open(AZKAR_JSON, encoding="utf-8") as f:
+        azkar_data = json.load(f)
 
     conn = sqlite3.connect(OUTPUT)
     try:
         init_schema(conn)
         seed_quran(conn, quran_data)
         seed_tafsir(conn, tafsir_data)
+        seed_azkar(conn, azkar_data)
         conn.commit()
 
         counts = {
             "surahs": conn.execute("SELECT COUNT(*) FROM surahs").fetchone()[0],
             "ayahs": conn.execute("SELECT COUNT(*) FROM ayahs").fetchone()[0],
             "tafsir": conn.execute("SELECT COUNT(*) FROM tafsir").fetchone()[0],
+            "azkar": conn.execute("SELECT COUNT(*) FROM azkar").fetchone()[0],
             "editions": conn.execute("SELECT COUNT(*) FROM editions").fetchone()[0],
         }
     finally:
@@ -215,6 +261,7 @@ def main() -> int:
         f"surahs={counts['surahs']}",
         f"ayahs={counts['ayahs']}",
         f"tafsir={counts['tafsir']}",
+        f"azkar={counts['azkar']}",
         f"editions={counts['editions']}",
     )
     return 0

@@ -4,17 +4,21 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
 import { ar } from '@/i18n/ar';
-import { AzkarScreen } from '@/screens/AzkarScreen';
+import { AzkarCategoriesScreen } from '@/screens/AzkarCategoriesScreen';
+import { AzkarCategoryScreen } from '@/screens/AzkarCategoryScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
+import { ReciterPickerScreen } from '@/screens/ReciterPickerScreen';
 import { SurahDetailScreen } from '@/screens/SurahDetailScreen';
 import { SurahListScreen } from '@/screens/SurahListScreen';
 import { useSettingsStore } from '@/store/settingsStore';
 import { getAppColors } from '@/utils/theme';
 
-import type { RootTabParamList, SurahsStackParamList } from './types';
+import type { AzkarStackParamList, RootTabParamList, SettingsStackParamList, SurahsStackParamList } from './types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const SurahsStack = createNativeStackNavigator<SurahsStackParamList>();
+const AzkarStack = createNativeStackNavigator<AzkarStackParamList>();
+const SettingsStack = createNativeStackNavigator<SettingsStackParamList>();
 
 const TAB_ICON_SIZE = 20;
 
@@ -33,6 +37,36 @@ function SurahsStackNavigator() {
 				component={SurahDetailScreen}
 			/>
 		</SurahsStack.Navigator>
+	);
+}
+
+function AzkarStackNavigator() {
+	return (
+		<AzkarStack.Navigator
+			initialRouteName="AzkarCategories"
+			screenOptions={{
+				headerShown: false,
+				animation: 'slide_from_right',
+			}}
+		>
+			<AzkarStack.Screen name="AzkarCategories" component={AzkarCategoriesScreen} />
+			<AzkarStack.Screen name="AzkarCategory" component={AzkarCategoryScreen} />
+		</AzkarStack.Navigator>
+	);
+}
+
+function SettingsStackNavigator() {
+	return (
+		<SettingsStack.Navigator
+			initialRouteName="SettingsMain"
+			screenOptions={{
+				headerShown: false,
+				animation: 'slide_from_right',
+			}}
+		>
+			<SettingsStack.Screen name="SettingsMain" component={SettingsScreen} />
+			<SettingsStack.Screen name="ReciterPicker" component={ReciterPickerScreen} />
+		</SettingsStack.Navigator>
 	);
 }
 
@@ -78,7 +112,7 @@ export function AppNavigator() {
 			/>
 			<Tab.Screen
 				name='Azkar'
-				component={AzkarScreen}
+				component={AzkarStackNavigator}
 				options={{
 					title: ar.azkar,
 					tabBarIcon: ({ color }) => (
@@ -92,7 +126,7 @@ export function AppNavigator() {
 			/>
 			<Tab.Screen
 				name='Settings'
-				component={SettingsScreen}
+				component={SettingsStackNavigator}
 				options={{
 					title: ar.settings,
 					tabBarIcon: ({ color }) => (

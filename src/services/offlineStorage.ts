@@ -1,6 +1,10 @@
 import * as SQLite from 'expo-sqlite';
+import { importDatabaseFromAssetAsync } from 'expo-sqlite';
 
-import type { Ayah, SurahMeta, SurahWithAyahs } from '@/types';
+import type { Ayah, AzkarCategory, AzkarItem, SurahMeta, SurahWithAyahs } from '@/types';
+
+const DB_NAME = 'quran_reader.db';
+const DB_ASSET_ID = require('../../assets/quran_reader.db');
 
 let dbInstance: SQLite.SQLiteDatabase | null = null;
 
@@ -21,6 +25,34 @@ export async function initBundledDb(db: SQLite.SQLiteDatabase): Promise<void> {
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
   `);
+}
+
+async function isBundledDbStale(db: SQLite.SQLiteDatabase): Promise<boolean> {
+  try {
+    const table = await db.getFirstAsync<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='azkar'"
+    );
+    if (!table) return true;
+    const row = await db.getFirstAsync<{ c: number }>('SELECT COUNT(*) AS c FROM azkar');
+    return (row?.c ?? 0) === 0;
+  } catch {
+    return true;
+  }
+}
+
+export async function openBundledDatabase(): Promise<void> {
+  let db = await SQLite.openDatabaseAsync(DB_NAME);
+
+  if (await isBundledDbStale(db)) {
+    await db.closeAsync();
+    await importDatabaseFromAssetAsync(DB_NAME, {
+      assetId: DB_ASSET_ID,
+      forceOverwrite: true,
+    });
+    db = await SQLite.openDatabaseAsync(DB_NAME);
+  }
+
+  await initBundledDb(db);
 }
 
 export async function loadAllSurahs(): Promise<SurahMeta[]> {
@@ -103,4 +135,49 @@ export async function loadTafsirOffline(
     [surahNumber, numberInSurah, source]
   );
   return row?.text ?? null;
+}
+
+export async function loadAzkarCategories(): Promise<AzkarCategory[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ category: string; itemCount: number }>(
+    `SELECT category, COUNT(*) AS itemCount
+     FROM azkar
+     GROUP BY category
+     ORDER BY MIN(sortOrder)`
+  );
+  return rows.map((r) => ({ name: r.category, itemCount: r.itemCount }));
+}
+
+export async function loadAzkarByCategory(category: string): Promise<AzkarItem[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{
+    id: number;
+    category: string;
+    text: string;
+    count: number;
+    description: string | null;
+    reference: string | null;
+  }>(
+    `SELECT id, category, text, count, description, reference
+     FROM azkar
+     WHERE category = ?
+     ORDER BY sortOrder`,
+    [category]
+  );
+  return rows;
+}
+
+export async function searchAzkarCategories(query: string): Promise<AzkarCategory[]> {
+  const q = query.trim();
+  if (!q) return loadAzkarCategories();
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ category: string; itemCount: number }>(
+    `SELECT category, COUNT(*) AS itemCount
+     FROM azkar
+     WHERE category LIKE ? OR text LIKE ? OR IFNULL(description, '') LIKE ?
+     GROUP BY category
+     ORDER BY MIN(sortOrder)`,
+    [`%${q}%`, `%${q}%`, `%${q}%`]
+  );
+  return rows.map((r) => ({ name: r.category, itemCount: r.itemCount }));
 }

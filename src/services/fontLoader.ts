@@ -1,7 +1,6 @@
 import type { ReadingFontId } from '@/types';
 
 const MAP: Record<ReadingFontId, string | undefined> = {
-  amiri: 'Amiri_400Regular',
   scheherazade: 'ScheherazadeNew_400Regular',
   system: undefined,
 };
