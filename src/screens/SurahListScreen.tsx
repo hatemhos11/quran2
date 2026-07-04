@@ -16,6 +16,7 @@ import type { SurahsStackParamList } from '@/navigation/types';
 import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { SurahMeta } from '@/types';
+import { matchesArabicSearch } from '@/utils/arabicSearch';
 import { sp } from '@/utils/spacing';
 import { getAppColors } from '@/utils/theme';
 
@@ -48,12 +49,13 @@ export function SurahListScreen({ navigation }: Props) {
 	}, [loadSurahs]);
 
 	const filtered = useMemo(() => {
-		const q = query.trim().toLowerCase();
+		const q = query.trim();
 		if (!q) return surahs;
+		const qLower = q.toLowerCase();
 		return surahs.filter(
 			(s) =>
-				s.name.includes(query) ||
-				s.englishName.toLowerCase().includes(q) ||
+				matchesArabicSearch(s.name, q) ||
+				s.englishName.toLowerCase().includes(qLower) ||
 				String(s.number) === q,
 		);
 	}, [surahs, query]);
@@ -193,7 +195,7 @@ export function SurahListScreen({ navigation }: Props) {
 				]}
 				inputStyle={{
 					color: c.text,
-					textAlign: 'right',
+
 					writingDirection: 'rtl',
 					fontSize: 15,
 				}}
@@ -323,12 +325,10 @@ const styles = StyleSheet.create({
 	ar: {
 		fontSize: 19,
 		fontWeight: '600',
-		textAlign: 'right',
 		writingDirection: 'rtl',
 	},
 	english: {
 		fontSize: 12,
-		textAlign: 'right',
 		writingDirection: 'rtl',
 		letterSpacing: 0.2,
 	},

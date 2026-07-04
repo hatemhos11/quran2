@@ -15,7 +15,7 @@ import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { buildNavigationTheme, buildPaperTheme } from '@/utils/theme';
 
-function AppShell({ onReady }: { onReady: () => void }) {
+function AppShell() {
   const themeMode = useSettingsStore((s) => s.theme);
   const isDark = themeMode === 'dark';
   const paperTheme = useMemo(() => buildPaperTheme(isDark), [isDark]);
@@ -26,7 +26,7 @@ function AppShell({ onReady }: { onReady: () => void }) {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, direction: 'rtl' }} onLayout={onReady}>
+    <GestureHandlerRootView style={{ flex: 1, direction: 'rtl' }}>
       <PaperProvider theme={paperTheme}>
         <BottomSheetModalProvider>
           <NavigationContainer theme={navTheme}>
@@ -40,7 +40,7 @@ function AppShell({ onReady }: { onReady: () => void }) {
 }
 
 export default function App() {
-  const { isReady, hideSplash } = useAppBootstrap();
+  const isReady = useAppBootstrap();
 
   useEffect(() => {
     const needsReload = configureRtlLayout();
@@ -51,5 +51,5 @@ export default function App() {
     return <AppSplashScreen />;
   }
 
-  return <AppShell onReady={hideSplash} />;
+  return <AppShell />;
 }

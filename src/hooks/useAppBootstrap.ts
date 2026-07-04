@@ -2,11 +2,15 @@ import { Amiri_400Regular, Amiri_700Bold } from '@expo-google-fonts/amiri';
 import { ScheherazadeNew_400Regular } from '@expo-google-fonts/scheherazade-new';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { openBundledDatabase } from '@/services/offlineStorage';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
+
+export function hideNativeSplash(): void {
+  SplashScreen.hideAsync().catch(() => undefined);
+}
 
 export function useAppBootstrap() {
   const [fontsLoaded] = useFonts({
@@ -32,11 +36,5 @@ export function useAppBootstrap() {
     };
   }, []);
 
-  const hideSplash = useCallback(async () => {
-    if (isReady) {
-      await SplashScreen.hideAsync();
-    }
-  }, [isReady]);
-
-  return { isReady, hideSplash };
+  return isReady;
 }

@@ -1,0 +1,20 @@
+{
+	"expo": {
+		"icon": "./assets/images/new-expo-assets/icon.png",
+		"splash": {
+			"image": "./assets/images/new-expo-assets/splash.png",
+			"resizeMode": "contain",
+			"backgroundColor": "#003030",
+			"imageWidth": 578
+		},
+		"android": {
+			"adaptiveIcon": {
+				"foregroundImage": "./assets/images/new-expo-assets/adaptive-icon.png",
+				"backgroundColor": "#003030"
+			}
+		},
+		"web": {
+			"favicon": "./assets/images/new-expo-assets/favicon.png"
+		}
+	}
+}

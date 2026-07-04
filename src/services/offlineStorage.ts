@@ -2,6 +2,7 @@ import * as SQLite from 'expo-sqlite';
 import { importDatabaseFromAssetAsync } from 'expo-sqlite';
 
 import type { Ayah, AzkarCategory, AzkarItem, SurahMeta, SurahWithAyahs } from '@/types';
+import { matchesArabicSearch } from '@/utils/arabicSearch';
 
 const DB_NAME = 'quran_reader.db';
 const DB_ASSET_ID = require('../../assets/quran_reader.db');
@@ -170,14 +171,26 @@ export async function loadAzkarByCategory(category: string): Promise<AzkarItem[]
 export async function searchAzkarCategories(query: string): Promise<AzkarCategory[]> {
   const q = query.trim();
   if (!q) return loadAzkarCategories();
+
   const db = await getDb();
-  const rows = await db.getAllAsync<{ category: string; itemCount: number }>(
-    `SELECT category, COUNT(*) AS itemCount
-     FROM azkar
-     WHERE category LIKE ? OR text LIKE ? OR IFNULL(description, '') LIKE ?
-     GROUP BY category
-     ORDER BY MIN(sortOrder)`,
-    [`%${q}%`, `%${q}%`, `%${q}%`]
-  );
-  return rows.map((r) => ({ name: r.category, itemCount: r.itemCount }));
+  const rows = await db.getAllAsync<{
+    category: string;
+    text: string;
+    description: string | null;
+  }>(`SELECT category, text, description FROM azkar ORDER BY sortOrder`);
+
+  const matchCountByCategory = new Map<string, number>();
+  for (const row of rows) {
+    const searchable = [row.category, row.text, row.description ?? ''];
+    if (!searchable.some((part) => matchesArabicSearch(part, q))) continue;
+    matchCountByCategory.set(row.category, (matchCountByCategory.get(row.category) ?? 0) + 1);
+  }
+
+  const categories = await loadAzkarCategories();
+  return categories
+    .filter((category) => matchCountByCategory.has(category.name))
+    .map((category) => ({
+      ...category,
+      itemCount: matchCountByCategory.get(category.name) ?? category.itemCount,
+    }));
 }

@@ -8,7 +8,7 @@
 		"scheme": "quran2",
 		"userInterfaceStyle": "automatic",
 		"ios": {
-			"icon": "./assets/expo.icon",
+			"icon": "./assets/images/icon.png",
 			"supportsTablet": true,
 			"bundleIdentifier": "com.hatemhos111.quran2",
 			"infoPlist": {
@@ -18,10 +18,8 @@
 		"android": {
 			"supportsRtl": true,
 			"adaptiveIcon": {
-				"backgroundColor": "#0E3B31",
-				"foregroundImage": "./assets/images/android-icon-foreground.png",
-				"backgroundImage": "./assets/images/android-icon-background.png",
-				"monochromeImage": "./assets/images/android-icon-monochrome.png"
+				"foregroundImage": "./assets/images/adaptive-icon.png",
+				"backgroundColor": "#003030"
 			},
 			"package": "com.hatemhos111.quran2"
 		},
@@ -31,18 +29,20 @@
 		},
 		"plugins": [
 			[
+				"expo-splash-screen",
+				{
+					"backgroundColor": "#003030",
+					"image": "./assets/images/splash.png",
+					"resizeMode": "cover"
+				}
+			],
+			[
 				"expo-localization",
 				{
 					"supportedLocales": {
 						"ios": ["ar"],
 						"android": ["ar"]
 					}
-				}
-			],
-			[
-				"expo-splash-screen",
-				{
-					"backgroundColor": "#F7F5EF"
 				}
 			],
 			"expo-sqlite",
@@ -56,4 +56,3 @@
 		}
 	}
 }
-
