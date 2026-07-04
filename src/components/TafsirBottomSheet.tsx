@@ -352,14 +352,11 @@ const styles = StyleSheet.create({
 		fontSize: 22,
 		lineHeight: 40,
 		writingDirection: 'rtl',
-		textAlign: 'right',
 		padding: sp.lg,
 	},
 	tafsirBody: {
 		fontSize: 16,
 		lineHeight: 30,
-		marginTop: sp.xs,
-		textAlign: 'right',
 	},
 	loadingWrap: {
 		paddingVertical: sp.xl,
