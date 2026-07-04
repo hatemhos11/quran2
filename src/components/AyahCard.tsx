@@ -5,7 +5,6 @@ import { ActivityIndicator, IconButton, Text } from 'react-native-paper';
 
 import { ar } from '@/i18n/ar';
 import type { Ayah } from '@/types';
-import { ayahEndMarker } from '@/utils/arabicNumerals';
 import { sp } from '@/utils/spacing';
 import { getAppColors } from '@/utils/theme';
 
@@ -37,29 +36,24 @@ export const AyahCard = memo(function AyahCard({
 	onLongPressAyah,
 }: Props) {
 	const c = getAppColors(isDark);
-	const lineHeight = fontSize * 1.85;
-	const markerSize = fontSize * 0.88;
-	const pinBg = isDark ? 'rgba(255, 193, 7, 0.16)' : 'rgba(255, 193, 7, 0.14)';
-	const pinBorder = isDark ? 'rgba(255, 193, 7, 0.45)' : '#E6C35C';
-	const highlightBg = isDark
-		? 'rgba(76, 175, 80, 0.22)'
-		: 'rgba(76, 175, 80, 0.15)';
+	const lineHeight = fontSize * 1.95;
+
+	// State-driven surface
 	const cardBg = isActive
-		? isDark
-			? 'rgba(76, 175, 80, 0.18)'
-			: 'rgba(76, 175, 80, 0.12)'
+		? c.accentSoft
 		: isPinned
-		? pinBg
-		: selected
-			? highlightBg
-			: c.surface;
+			? c.accentMutedSoft
+			: selected
+				? c.accentSoft
+				: c.surface;
+
 	const cardBorder = isActive
 		? c.accent
 		: isPinned
-		? pinBorder
-		: isDark
-			? '#37474F'
-			: '#E8E4D9';
+			? c.accentMuted
+			: selected
+				? c.accent
+				: c.border;
 
 	const handlePlayPress = useCallback(() => {
 		if (Platform.OS !== 'web') {
@@ -91,31 +85,77 @@ export const AyahCard = memo(function AyahCard({
 				{
 					backgroundColor: cardBg,
 					borderColor: cardBorder,
-					borderWidth: isPinned ? 1.5 : StyleSheet.hairlineWidth,
-					shadowColor: isDark ? '#000' : c.cardShadow,
-					opacity: pressed ? 0.92 : 1,
+					borderWidth:
+						isActive || isPinned || selected
+							? 1.2
+							: StyleSheet.hairlineWidth,
+					shadowColor: c.cardShadow,
+					opacity: pressed ? 0.94 : 1,
 				},
 			]}
 		>
-			<View style={styles.toolbar}>
-				<IconButton
-					icon={isActive && isPlaying ? 'pause' : 'play'}
-					size={22}
-					onPress={handlePlayPress}
-					disabled={isLoadingAudio}
-					iconColor={isActive ? c.accent : c.textSecondary}
-					accessibilityLabel={
-						isActive && isPlaying
-							? ar.pauseAyahAudioA11y
-							: ar.playAyahAudioA11y
-					}
-					style={styles.playButton}
-				/>
-				{isLoadingAudio ? (
-					<ActivityIndicator size="small" color={c.accent} style={styles.playSpinner} />
-				) : null}
+			{/* Top rail: ayah number diamond + controls */}
+			<View style={styles.rail}>
+				<View
+					style={[
+						styles.numberDiamond,
+						{
+							backgroundColor: isActive
+								? c.accent
+								: c.surfaceMuted,
+							borderColor: isActive ? c.accent : c.border,
+						},
+					]}
+				>
+					<Text
+						style={[
+							styles.numberText,
+							{ color: isActive ? c.surface : c.accent },
+						]}
+					>
+						{ayah.numberInSurah}
+					</Text>
+				</View>
+
+				<View style={styles.railActions}>
+					{isPinned ? (
+						<IconButton
+							icon='bookmark'
+							size={18}
+							iconColor={c.accentMuted}
+							style={styles.iconBtn}
+							disabled
+						/>
+					) : null}
+					{isLoadingAudio ? (
+						<ActivityIndicator
+							size='small'
+							color={c.accent}
+							style={styles.spinner}
+						/>
+					) : (
+						<IconButton
+							icon={
+								isActive && isPlaying
+									? 'pause-circle'
+									: 'play-circle'
+							}
+							size={28}
+							onPress={handlePlayPress}
+							iconColor={isActive ? c.accent : c.textSecondary}
+							accessibilityLabel={
+								isActive && isPlaying
+									? ar.pauseAyahAudioA11y
+									: ar.playAyahAudioA11y
+							}
+							style={styles.iconBtn}
+						/>
+					)}
+				</View>
 			</View>
-			<View style={[styles.inner, { backgroundColor: cardBg }]}>
+
+			{/* Ayah text */}
+			<View style={styles.inner}>
 				<Text
 					style={[
 						styles.ayahText,
@@ -128,64 +168,71 @@ export const AyahCard = memo(function AyahCard({
 					]}
 					maxFontSizeMultiplier={1.85}
 				>
-					{ayah.text}{' '}
-					<Text
-						style={[
-							styles.marker,
-							{
-								fontSize: markerSize,
-								lineHeight: markerSize * 1.5,
-								color: c.accent,
-								fontFamily: arabicFontFamily,
-							},
-						]}
-						maxFontSizeMultiplier={1.85}
-					>
-						{ayahEndMarker(ayah.numberInSurah)}
-					</Text>
+					{ayah.text}
 				</Text>
 			</View>
+
+			{/* Playing indicator strip */}
+			{isActive && isPlaying ? (
+				<View
+					style={[styles.playingStrip, { backgroundColor: c.accent }]}
+				/>
+			) : null}
 		</Pressable>
 	);
 });
 
 const styles = StyleSheet.create({
 	card: {
-		marginBottom: sp.md + 2,
-		borderRadius: sp.md + 2,
+		marginBottom: sp.md,
+		borderRadius: 18,
 		overflow: 'hidden',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 1,
+		shadowRadius: 8,
 		elevation: 1,
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.06,
-		shadowRadius: 3,
 	},
-	toolbar: {
+	rail: {
 		flexDirection: 'row-reverse',
 		alignItems: 'center',
-		paddingHorizontal: sp.xs,
-		paddingTop: sp.xs,
+		justifyContent: 'space-between',
+		paddingHorizontal: sp.md,
+		paddingTop: sp.sm,
 	},
-	playButton: {
-		margin: 0,
+	numberDiamond: {
+		width: 32,
+		height: 32,
+		borderRadius: 10,
+		borderWidth: 1,
+		alignItems: 'center',
+		justifyContent: 'center',
+		transform: [{ rotate: '45deg' }],
 	},
-	playSpinner: {
-		marginRight: sp.sm,
+	numberText: {
+		fontSize: 12,
+		fontWeight: '700',
+		transform: [{ rotate: '-45deg' }],
 	},
+	railActions: {
+		flexDirection: 'row-reverse',
+		alignItems: 'center',
+	},
+	iconBtn: { margin: 0 },
+	spinner: { marginHorizontal: sp.md },
 	inner: {
-		paddingHorizontal: sp.xl,
-		paddingVertical: sp.lg,
-		writingDirection: 'rtl',
+		paddingHorizontal: sp.lg,
+		paddingTop: sp.sm,
+		paddingBottom: sp.lg,
 	},
 	ayahText: {
 		textAlign: 'justify',
 		writingDirection: 'rtl',
 		includeFontPadding: false,
 	},
-	marker: {
-		marginTop: sp.sm + 2,
-		textAlign: 'left',
-		writingDirection: 'rtl',
-		includeFontPadding: false,
+	playingStrip: {
+		height: 3,
+		width: '100%',
+		opacity: 0.9,
 	},
 });
 

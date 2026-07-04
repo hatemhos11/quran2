@@ -22,8 +22,9 @@ export function EmptyState({
   message,
   icon = 'book-open-page-variant',
   onRetry,
-  retryLabel = ar.tryAgain,
+  retryLabel,
 }: Props) {
+  const resolvedRetryLabel = retryLabel ?? ar.tryAgain;
   const c = getAppColors(isDark);
   return (
     <View style={styles.wrap}>
@@ -35,8 +36,8 @@ export function EmptyState({
         {message}
       </Text>
       {onRetry ? (
-        <Button mode="contained" onPress={onRetry} style={styles.btn} accessibilityLabel={retryLabel}>
-          {retryLabel}
+        <Button mode="contained" onPress={onRetry} style={styles.btn} accessibilityLabel={resolvedRetryLabel}>
+          {resolvedRetryLabel}
         </Button>
       ) : null}
     </View>

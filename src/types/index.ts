@@ -19,7 +19,7 @@ export interface SurahWithAyahs extends SurahMeta {
   ayahs: Ayah[];
 }
 
-export type ReadingFontId = 'scheherazade' | 'system';
+export type ReadingFontId = 'amiri' | 'scheherazade' | 'system';
 
 export type ThemeMode = 'light' | 'dark';
 

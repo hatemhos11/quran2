@@ -1,25 +1,21 @@
 import 'react-native-get-random-values';
 
-import { Amiri_400Regular, Amiri_700Bold } from '@expo-google-fonts/amiri';
-import { ScheherazadeNew_400Regular } from '@expo-google-fonts/scheherazade-new';
-import { useFonts } from 'expo-font';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { NavigationContainer } from '@react-navigation/native';
-import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider as PaperProvider } from 'react-native-paper';
 
+import { configureRtlLayout, reloadAppForRtl } from '@/i18n/rtl';
+import { useAppBootstrap } from '@/hooks/useAppBootstrap';
 import { AppNavigator } from '@/navigation/AppNavigator';
-import { openBundledDatabase } from '@/services/offlineStorage';
+import { AppSplashScreen } from '@/screens/AppSplashScreen';
 import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { buildNavigationTheme, buildPaperTheme } from '@/utils/theme';
 
-SplashScreen.preventAutoHideAsync().catch(() => undefined);
-
-function AppShell({ onLayout }: { onLayout: () => void }) {
+function AppShell({ onReady }: { onReady: () => void }) {
   const themeMode = useSettingsStore((s) => s.theme);
   const isDark = themeMode === 'dark';
   const paperTheme = useMemo(() => buildPaperTheme(isDark), [isDark]);
@@ -30,7 +26,7 @@ function AppShell({ onLayout }: { onLayout: () => void }) {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, direction: 'rtl' }} onLayout={onLayout}>
+    <GestureHandlerRootView style={{ flex: 1, direction: 'rtl' }} onLayout={onReady}>
       <PaperProvider theme={paperTheme}>
         <BottomSheetModalProvider>
           <NavigationContainer theme={navTheme}>
@@ -44,40 +40,16 @@ function AppShell({ onLayout }: { onLayout: () => void }) {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
-    Amiri_400Regular,
-    Amiri_700Bold,
-    ScheherazadeNew_400Regular,
-  });
-  const [dbReady, setDbReady] = useState(false);
-
-  const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded && dbReady) {
-      await SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, dbReady]);
+  const { isReady, hideSplash } = useAppBootstrap();
 
   useEffect(() => {
-    let cancelled = false;
-    openBundledDatabase()
-      .then(() => {
-        if (!cancelled) setDbReady(true);
-      })
-      .catch(() => {
-        if (!cancelled) setDbReady(true);
-      });
-    return () => {
-      cancelled = true;
-    };
+    const needsReload = configureRtlLayout();
+    if (needsReload) reloadAppForRtl();
   }, []);
 
-  useEffect(() => {
-    onLayoutRootView();
-  }, [onLayoutRootView]);
-
-  if (!fontsLoaded || !dbReady) {
-    return null;
+  if (!isReady) {
+    return <AppSplashScreen />;
   }
 
-  return <AppShell onLayout={onLayoutRootView} />;
+  return <AppShell onReady={hideSplash} />;
 }

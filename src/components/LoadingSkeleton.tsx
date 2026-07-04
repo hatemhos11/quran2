@@ -10,7 +10,15 @@ type Props = {
   count?: number;
 };
 
-function SkeletonLine({ isDark, widthPct }: { isDark: boolean; widthPct: number }) {
+function SkeletonLine({
+  isDark,
+  widthPct,
+  loadingLabel,
+}: {
+  isDark: boolean;
+  widthPct: number;
+  loadingLabel: string;
+}) {
   const c = getAppColors(isDark);
   const pulse = useRef(new Animated.Value(0.35)).current;
 
@@ -45,7 +53,7 @@ function SkeletonLine({ isDark, widthPct }: { isDark: boolean; widthPct: number 
           opacity: pulse,
         },
       ]}
-      accessibilityLabel={ar.loadingLabel}
+      accessibilityLabel={loadingLabel}
     />
   );
 }
@@ -55,7 +63,12 @@ export function LoadingSkeleton({ isDark, count = 6 }: Props) {
   return (
     <View style={[styles.card, { backgroundColor: c.surface }]} accessibilityRole="progressbar">
       {Array.from({ length: count }).map((_, i) => (
-        <SkeletonLine key={i} isDark={isDark} widthPct={85 - (i % 3) * 10} />
+        <SkeletonLine
+          key={i}
+          isDark={isDark}
+          widthPct={85 - (i % 3) * 10}
+          loadingLabel={ar.loadingLabel}
+        />
       ))}
     </View>
   );
