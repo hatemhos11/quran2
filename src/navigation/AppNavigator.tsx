@@ -6,6 +6,7 @@ import React from 'react';
 import { ar } from '@/i18n/ar';
 import { AzkarCategoriesScreen } from '@/screens/AzkarCategoriesScreen';
 import { AzkarCategoryScreen } from '@/screens/AzkarCategoryScreen';
+import { PrayerTimesScreen } from '@/screens/PrayerTimesScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 import { ReciterPickerScreen } from '@/screens/ReciterPickerScreen';
 import { SurahDetailScreen } from '@/screens/SurahDetailScreen';
@@ -13,11 +14,12 @@ import { SurahListScreen } from '@/screens/SurahListScreen';
 import { useSettingsStore } from '@/store/settingsStore';
 import { getAppColors } from '@/utils/theme';
 
-import type { AzkarStackParamList, RootTabParamList, SettingsStackParamList, SurahsStackParamList } from './types';
+import type { AzkarStackParamList, PrayerStackParamList, RootTabParamList, SettingsStackParamList, SurahsStackParamList } from './types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const SurahsStack = createNativeStackNavigator<SurahsStackParamList>();
 const AzkarStack = createNativeStackNavigator<AzkarStackParamList>();
+const PrayerStack = createNativeStackNavigator<PrayerStackParamList>();
 const SettingsStack = createNativeStackNavigator<SettingsStackParamList>();
 
 const TAB_ICON_SIZE = 20;
@@ -52,6 +54,23 @@ function AzkarStackNavigator() {
 			<AzkarStack.Screen name="AzkarCategories" component={AzkarCategoriesScreen} />
 			<AzkarStack.Screen name="AzkarCategory" component={AzkarCategoryScreen} />
 		</AzkarStack.Navigator>
+	);
+}
+
+function PrayerStackNavigator() {
+	return (
+		<PrayerStack.Navigator
+			initialRouteName='PrayerTimesMain'
+			screenOptions={{
+				headerShown: false,
+				animation: 'fade_from_bottom',
+			}}
+		>
+			<PrayerStack.Screen
+				name='PrayerTimesMain'
+				component={PrayerTimesScreen}
+			/>
+		</PrayerStack.Navigator>
 	);
 }
 
@@ -118,6 +137,20 @@ export function AppNavigator() {
 					tabBarIcon: ({ color }) => (
 						<MaterialCommunityIcons
 							name='hands-pray'
+							size={TAB_ICON_SIZE}
+							color={color}
+						/>
+					),
+				}}
+			/>
+			<Tab.Screen
+				name='Prayer'
+				component={PrayerStackNavigator}
+				options={{
+					title: ar.prayerTimesTab,
+					tabBarIcon: ({ color }) => (
+						<MaterialCommunityIcons
+							name='mosque'
 							size={TAB_ICON_SIZE}
 							color={color}
 						/>

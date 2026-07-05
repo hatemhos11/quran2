@@ -13,8 +13,13 @@ export type SettingsStackParamList = {
   ReciterPicker: undefined;
 };
 
+export type PrayerStackParamList = {
+  PrayerTimesMain: undefined;
+};
+
 export type RootTabParamList = {
   Surahs: undefined;
   Azkar: undefined;
+  Prayer: undefined;
   Settings: undefined;
 };

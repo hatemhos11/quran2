@@ -2,11 +2,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  View,
+	FlatList,
+	Pressable,
+	RefreshControl,
+	StyleSheet,
+	View,
 } from 'react-native';
 import { IconButton, Searchbar, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,8 +16,8 @@ import { ar } from '@/i18n/ar';
 import type { AzkarStackParamList } from '@/navigation/types';
 import { searchAzkarCategories } from '@/services/offlineStorage';
 import {
-  sortAzkarCategories,
-  usePinnedAzkarStore,
+	sortAzkarCategories,
+	usePinnedAzkarStore,
 } from '@/store/pinnedAzkarStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { AzkarCategory } from '@/types';
@@ -246,7 +246,11 @@ export function AzkarCategoriesScreen({ navigation }: Props) {
 					onChangeText={setQuery}
 					style={[
 						styles.search,
-						{ backgroundColor: isDark ? '#243447' : '#EEF2F0' },
+						{
+							backgroundColor: isDark
+								? c.surface
+								: c.surfaceElevated,
+						},
 					]}
 					inputStyle={{
 						color: c.text,

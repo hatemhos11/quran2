@@ -223,20 +223,31 @@ export function AzkarCategoryScreen({ navigation, route }: Props) {
 			edges={['top']}
 		>
 			<Appbar.Header
-				style={[styles.appBar, { backgroundColor: c.surface }]}
+				style={[
+					styles.appBarHeader,
+					{
+						backgroundColor: c.background,
+						borderBottomColor: c.border,
+					},
+				]}
+				statusBarHeight={0}
 			>
 				<Appbar.BackAction
 					onPress={() => navigation.goBack()}
-					accessibilityLabel={ar.azkar}
+					accessibilityLabel={ar.surahs}
+					color={c.text}
 				/>
 				<Appbar.Content
 					title={category}
 					titleStyle={{
 						color: c.text,
+						fontSize: 17,
+						fontWeight: '600',
 						textAlign: 'center',
 						writingDirection: 'rtl',
 					}}
 				/>
+				<View style={{ width: 48 }} />
 			</Appbar.Header>
 
 			{loading ? (

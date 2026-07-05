@@ -12,11 +12,16 @@
 			"supportsTablet": true,
 			"bundleIdentifier": "com.hatemhos111.quran2",
 			"infoPlist": {
-				"ITSAppUsesNonExemptEncryption": false
+				"ITSAppUsesNonExemptEncryption": false,
+				"NSLocationWhenInUseUsageDescription": "يُستخدم موقعك لحساب مواقيت الصلاة بدقة."
 			}
 		},
 		"android": {
 			"supportsRtl": true,
+			"permissions": [
+				"ACCESS_COARSE_LOCATION",
+				"ACCESS_FINE_LOCATION"
+			],
 			"adaptiveIcon": {
 				"foregroundImage": "./assets/images/adaptive-icon.png",
 				"backgroundColor": "#003030"
@@ -34,6 +39,12 @@
 					"backgroundColor": "#003030",
 					"image": "./assets/images/splash-icon.png",
 					"resizeMode": "cover"
+				}
+			],
+			[
+				"expo-location",
+				{
+					"locationWhenInUsePermission": "يُستخدم موقعك لحساب مواقيت الصلاة بدقة."
 				}
 			],
 			[

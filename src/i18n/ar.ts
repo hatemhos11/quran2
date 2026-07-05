@@ -132,4 +132,27 @@ export const ar = {
   surahA11y: (num: number, enName: string) => `سورة ${num}، ${enName}`,
   loadingLabel: 'جارٍ التحميل',
   offlineConnectToDownload: 'أنت غير متصل. اتصل بالإنترنت ثم نزّل السورة.',
+  prayerTimes: 'مواقيت الصلاة',
+  prayerTimesTab: 'الصلاة',
+  prayerFajr: 'الفجر',
+  prayerSunrise: 'الشروق',
+  prayerDhuhr: 'الظهر',
+  prayerAsr: 'العصر',
+  prayerMaghrib: 'المغرب',
+  prayerIsha: 'العشاء',
+  prayerNext: 'الصلاة القادمة',
+  prayerCurrent: 'الوقت الحالي',
+  prayerPassed: 'انتهى',
+  prayerToday: 'جدول اليوم',
+  prayerLoading: 'جارٍ حساب المواقيت…',
+  prayerLocationError: 'تعذّر تحديد الموقع. يُعرض جدول افتراضي.',
+  prayerUpdateLocation: 'تحديث الموقع',
+  prayerDefaultLocationHint:
+    'اضغط على الموقع أدناه للسماح بالوصول إلى موقعك وحساب المواقيت بدقة.',
+  prayerPermissionDenied:
+    'لم يُمنح إذن الموقع. يمكنك فتح الإعدادات أو الاستمرار بالموقع الافتراضي.',
+  prayerOpenSettings: 'فتح إعدادات التطبيق',
+  prayerUseMyLocation: 'استخدام موقعي',
+  prayerMethodNote:
+    'الحساب وفق رابطة العالم الإسلامي · المذهب الشافعي للعصر.',
 } as const;
