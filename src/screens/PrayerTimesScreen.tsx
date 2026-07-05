@@ -15,8 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { ar } from '@/i18n/ar';
-import { openLocationSettings } from '@/services/prayerTimes';
 import type { PrayerName } from '@/services/prayerTimes';
+import { openLocationSettings } from '@/services/prayerTimes';
 import { useSettingsStore } from '@/store/settingsStore';
 import { formatCountdown, formatPrayerClock } from '@/utils/formatPrayerTime';
 import { sp } from '@/utils/spacing';
@@ -87,7 +87,9 @@ export function PrayerTimesScreen() {
 			>
 				<View style={styles.loader}>
 					<ActivityIndicator size='large' color={c.accent} />
-					<Text style={[styles.loaderText, { color: c.textSecondary }]}>
+					<Text
+						style={[styles.loaderText, { color: c.textSecondary }]}
+					>
 						{ar.prayerLoading}
 					</Text>
 				</View>
@@ -284,7 +286,9 @@ export function PrayerTimesScreen() {
 										name={PRAYER_ICONS[slot.id]}
 										size={22}
 										color={
-											isActive ? c.accent : c.textSecondary
+											isActive
+												? c.accent
+												: c.textSecondary
 										}
 									/>
 								</View>
@@ -365,9 +369,6 @@ export function PrayerTimesScreen() {
 						size={18}
 						color={c.textSecondary}
 					/>
-					<Text style={[styles.noteText, { color: c.textSecondary }]}>
-						{ar.prayerMethodNote}
-					</Text>
 				</View>
 			</ScrollView>
 		</SafeAreaView>
@@ -565,3 +566,4 @@ const styles = StyleSheet.create({
 		writingDirection: 'rtl',
 	},
 });
+
