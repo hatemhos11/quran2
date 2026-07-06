@@ -261,11 +261,6 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 				/>
 				<Appbar.Content
 					title={data?.name ?? ''}
-					subtitle={
-						showTransliteration
-							? `${ar.surahNumber(data?.number ?? 0)} · ${data?.englishName}`
-							: ar.surahNumber(data?.number ?? 0)
-					}
 					titleStyle={{
 						color: c.text,
 						fontSize: 17,
@@ -273,12 +268,6 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 						textAlign: 'center',
 						writingDirection: 'rtl',
 						fontFamily: arabicFamily,
-					}}
-					subtitleStyle={{
-						color: c.textTertiary,
-						fontSize: 11,
-						textAlign: 'center',
-						writingDirection: 'rtl',
 					}}
 				/>
 				<View style={{ width: 48 }} />
@@ -296,31 +285,6 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 					]}
 				/>
 			</View>
-
-			{isOffline ? (
-				<View
-					style={[
-						styles.banner,
-						{ backgroundColor: c.accentMutedSoft },
-					]}
-				>
-					<View
-						style={[
-							styles.bannerDot,
-							{ backgroundColor: c.accentMuted },
-						]}
-					/>
-					<Text
-						style={{
-							color: c.text,
-							fontSize: 12,
-							fontWeight: '600',
-						}}
-					>
-						{ar.offlineBanner}
-					</Text>
-				</View>
-			) : null}
 
 			<ScrollView
 				ref={scrollRef}
@@ -371,7 +335,9 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 								}
 								isActive={isActive(ayah.numberInQuran)}
 								isPlaying={isTrackPlaying(ayah.numberInQuran)}
-								isLoadingAudio={isTrackLoading(ayah.numberInQuran)}
+								isLoadingAudio={isTrackLoading(
+									ayah.numberInQuran,
+								)}
 								onPressPlay={onPressPlayAyah}
 								onLongPressAyah={openAyah}
 							/>

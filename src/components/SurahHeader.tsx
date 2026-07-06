@@ -3,8 +3,8 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
 import { ar } from '@/i18n/ar';
-import type { SurahMeta } from '@/types';
 import { getQuranFontFamily } from '@/services/fontLoader';
+import type { SurahMeta } from '@/types';
 import { sp } from '@/utils/spacing';
 import { getAppColors } from '@/utils/theme';
 
@@ -21,17 +21,11 @@ export function SurahHeader({ surah, isDark, showTransliteration }: Props) {
 
 	return (
 		<View style={styles.wrap}>
-			{/* Ornamental number medallion */}
-			<View style={[styles.medallionOuter, { borderColor: c.accent }]}>
-				<View style={[styles.medallion, { backgroundColor: c.accent }]}>
-					<Text style={[styles.medallionNum, { color: c.surface }]}>
-						{surah.number}
-					</Text>
-				</View>
-			</View>
-
 			<Text
-				style={[styles.arName, { color: c.arabic, fontFamily: quranFont }]}
+				style={[
+					styles.arName,
+					{ color: c.arabic, fontFamily: quranFont },
+				]}
 				accessibilityRole='header'
 			>
 				{surah.name}
