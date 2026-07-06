@@ -42,7 +42,7 @@ type PageBlockProps = Pick<
 	pageAyahs: Ayah[];
 };
 
-const MushafPageBlock = memo(function MushafPageBlock({
+export const MushafPageBlock = memo(function MushafPageBlock({
 	page,
 	pageAyahs,
 	fontSize,
@@ -222,6 +222,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: sp.lg,
 		paddingTop: sp.lg,
 		paddingBottom: sp.sm,
+		marginBottom: sp.lg,
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 1,
 		shadowRadius: 8,

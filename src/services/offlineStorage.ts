@@ -79,7 +79,7 @@ export async function loadAllSurahs(): Promise<SurahMeta[]> {
   }));
 }
 
-export async function loadSurahOffline(surahNumber: number): Promise<SurahWithAyahs | null> {
+export async function loadSurahMetaOffline(surahNumber: number): Promise<SurahMeta | null> {
   const db = await getDb();
   const surah = await db.getFirstAsync<{
     id: number;
@@ -90,30 +90,100 @@ export async function loadSurahOffline(surahNumber: number): Promise<SurahWithAy
     numberOfAyahs: number;
   }>('SELECT * FROM surahs WHERE id = ?', [surahNumber]);
   if (!surah) return null;
-  const ayahRows = await db.getAllAsync<{
-    numberInSurah: number;
-    numberInQuran: number;
-    text: string;
-    page: number | null;
-  }>(
-    'SELECT numberInSurah, numberInQuran, text, page FROM ayahs WHERE surahId = ? ORDER BY numberInSurah ASC',
-    [surahNumber]
-  );
-  const ayahs: Ayah[] = ayahRows.map((r) => ({
-    numberInSurah: r.numberInSurah,
-    numberInQuran: r.numberInQuran,
-    text: r.text,
-    page: r.page ?? 1,
-  }));
   return {
     number: surah.id,
     name: surah.name,
     englishName: surah.englishName,
     englishNameTranslation: surah.englishNameTranslation ?? undefined,
-    revelationType: surah.revelationType as SurahWithAyahs['revelationType'],
+    revelationType: surah.revelationType as SurahMeta['revelationType'],
     numberOfAyahs: surah.numberOfAyahs,
-    ayahs,
   };
+}
+
+function mapAyahRow(r: {
+  numberInSurah: number;
+  numberInQuran: number;
+  text: string;
+  page: number | null;
+}): Ayah {
+  return {
+    numberInSurah: r.numberInSurah,
+    numberInQuran: r.numberInQuran,
+    text: r.text,
+    page: r.page ?? 1,
+  };
+}
+
+export async function loadSurahAyahIndexOffline(
+  surahNumber: number,
+): Promise<Pick<Ayah, 'numberInSurah' | 'numberInQuran' | 'page'>[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{
+    numberInSurah: number;
+    numberInQuran: number;
+    page: number | null;
+  }>(
+    'SELECT numberInSurah, numberInQuran, page FROM ayahs WHERE surahId = ? ORDER BY numberInSurah ASC',
+    [surahNumber],
+  );
+  return rows.map((r) => ({
+    numberInSurah: r.numberInSurah,
+    numberInQuran: r.numberInQuran,
+    page: r.page ?? 1,
+  }));
+}
+
+export async function loadAyahsChunkOffline(
+  surahNumber: number,
+  offset: number,
+  limit: number,
+): Promise<Ayah[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{
+    numberInSurah: number;
+    numberInQuran: number;
+    text: string;
+    page: number | null;
+  }>(
+    `SELECT numberInSurah, numberInQuran, text, page
+     FROM ayahs WHERE surahId = ? ORDER BY numberInSurah ASC LIMIT ? OFFSET ?`,
+    [surahNumber, limit, offset],
+  );
+  return rows.map(mapAyahRow);
+}
+
+export async function loadAyahsByPageOffline(
+  surahNumber: number,
+  page: number,
+): Promise<Ayah[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{
+    numberInSurah: number;
+    numberInQuran: number;
+    text: string;
+    page: number | null;
+  }>(
+    `SELECT numberInSurah, numberInQuran, text, page
+     FROM ayahs WHERE surahId = ? AND page = ? ORDER BY numberInSurah ASC`,
+    [surahNumber, page],
+  );
+  return rows.map(mapAyahRow);
+}
+
+export async function loadSurahPageNumbersOffline(surahNumber: number): Promise<number[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ page: number }>(
+    'SELECT DISTINCT page FROM ayahs WHERE surahId = ? ORDER BY page ASC',
+    [surahNumber],
+  );
+  return rows.map((r) => r.page);
+}
+
+export async function loadSurahOffline(surahNumber: number): Promise<SurahWithAyahs | null> {
+  const meta = await loadSurahMetaOffline(surahNumber);
+  if (!meta) return null;
+  const ayahs = await loadAyahsChunkOffline(surahNumber, 0, meta.numberOfAyahs);
+  return { ...meta, ayahs };
 }
 
 export async function getAyahRowId(surahNumber: number, numberInSurah: number): Promise<number | null> {

@@ -31,9 +31,9 @@ function isPlaybackFinished(status: AVPlaybackStatus): boolean {
   );
 }
 
-export function useAyahAudio(reciterId: string, ayahs: Ayah[]) {
+export function useAyahAudio(reciterId: string, ayahTracks: AyahAudioTrack[]) {
   const soundRef = useRef<Audio.Sound | null>(null);
-  const ayahsRef = useRef(ayahs);
+  const ayahsRef = useRef(ayahTracks);
   const reciterRef = useRef(reciterId);
   const repeatRef = useRef(false);
   const autoNextRef = useRef(false);
@@ -53,8 +53,8 @@ export function useAyahAudio(reciterId: string, ayahs: Ayah[]) {
   const [autoNextEnabled, setAutoNextEnabled] = useState(true);
 
   useEffect(() => {
-    ayahsRef.current = ayahs;
-  }, [ayahs]);
+    ayahsRef.current = ayahTracks;
+  }, [ayahTracks]);
 
   useEffect(() => {
     reciterRef.current = reciterId;

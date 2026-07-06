@@ -6,7 +6,13 @@ import React, {
 	useRef,
 	useState,
 } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import {
+	ActivityIndicator,
+	FlatList,
+	StyleSheet,
+	View,
+	type ListRenderItem,
+} from 'react-native';
 import { Appbar, FAB, Text } from 'react-native-paper';
 import {
 	SafeAreaView,
@@ -15,23 +21,25 @@ import {
 
 import { AyahAudioPlayer } from '@/components/AyahAudioPlayer';
 import { AyahCard } from '@/components/AyahCard';
-import { ContinuousAyahBlock } from '@/components/ContinuousAyahBlock';
+import { MushafPageBlock } from '@/components/ContinuousAyahBlock';
 import { SurahHeader } from '@/components/SurahHeader';
 import { TafsirBottomSheet } from '@/components/TafsirBottomSheet';
 import { useAyahAudio } from '@/hooks/useAyahAudio';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
+import { useSurahContent } from '@/hooks/useSurahContent';
 import { ar } from '@/i18n/ar';
 import type { SurahsStackParamList } from '@/navigation/types';
 import { getQuranFontFamily } from '@/services/fontLoader';
-import { loadSurahOffline } from '@/services/offlineStorage';
 import { pinnedAyahKey, usePinnedAyahStore } from '@/store/pinnedAyahStore';
 import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { Ayah, SurahWithAyahs } from '@/types';
-import { BISMILLAH } from '@/utils/constants';
-import { formatAyahDisplayText } from '@/utils/ayahText';
+import type { Ayah } from '@/types';
+import {
+	AYAH_ESTIMATE_HEIGHT,
+	BISMILLAH,
+	MUSHAF_PAGE_ESTIMATE_HEIGHT,
+} from '@/utils/constants';
 import { sp } from '@/utils/spacing';
-import { isBasmalah, removeBasmalah } from '@/utils/startWithBasmalah';
 import { getAppColors } from '@/utils/theme';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 
@@ -53,16 +61,27 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 	const isOffline = useQuranStore((s) => s.isOffline);
 	const setCurrentSurahNumber = useQuranStore((s) => s.setCurrentSurahNumber);
 
-	const [data, setData] = useState<SurahWithAyahs | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
+	const {
+		meta,
+		ayahIndex,
+		ayahs,
+		pageNumbers,
+		loading,
+		loadingMore,
+		hasMore,
+		error,
+		loadMore,
+		getPageAyahs,
+		ensurePageLoaded,
+	} = useSurahContent(surahNumber, ayahLayout);
+
 	const [scrollProgress, setScrollProgress] = useState(0);
 	const [showFab, setShowFab] = useState(false);
 	const [selectedNumberInSurah, setSelectedNumberInSurah] = useState<
 		number | null
 	>(null);
 
-	const scrollRef = useRef<ScrollView>(null);
+	const listRef = useRef<FlatList>(null);
 	const sheetRef = useRef<BottomSheetModal>(null);
 	const [picked, setPicked] = useState<Ayah | null>(null);
 
@@ -76,23 +95,16 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		togglePin(surahNumber, picked.numberInSurah);
 	}, [picked, surahNumber, togglePin]);
 
-	const preparedAyahs = useMemo(() => {
-		if (!data) return [];
-		const ayahs = data.ayahs.map((a) => ({ ...a }));
-		if (
-			ayahs.length &&
-			ayahs[0].numberInQuran !== 1 &&
-			isBasmalah(ayahs[0].text)
-		) {
-			ayahs[0] = { ...ayahs[0], text: removeBasmalah(ayahs[0].text) };
-		}
-		return ayahs.map((a) => ({
-			...a,
-			text: formatAyahDisplayText(a.text),
-		}));
-	}, [data]);
-
 	const arabicFamily = getQuranFontFamily();
+
+	const audioTracks = useMemo(
+		() =>
+			ayahIndex.map((a) => ({
+				numberInSurah: a.numberInSurah,
+				numberInQuran: a.numberInQuran,
+			})),
+		[ayahIndex],
+	);
 
 	const {
 		currentTrack,
@@ -112,7 +124,7 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		isTrackPlaying,
 		isTrackLoading,
 		playerVisible,
-	} = useAyahAudio(preferredReciter, preparedAyahs);
+	} = useAyahAudio(preferredReciter, audioTracks);
 
 	const onPressPlayAyah = useCallback(
 		(ayah: Ayah) => {
@@ -123,13 +135,13 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 
 	const pinnedNumbers = useMemo(() => {
 		const set = new Set<number>();
-		for (const ayah of preparedAyahs) {
+		for (const ayah of ayahIndex) {
 			if (pins[pinnedAyahKey(surahNumber, ayah.numberInSurah)]) {
 				set.add(ayah.numberInSurah);
 			}
 		}
 		return set;
-	}, [preparedAyahs, pins, surahNumber]);
+	}, [ayahIndex, pins, surahNumber]);
 
 	const playerBottomInset = playerVisible ? 118 : 0;
 
@@ -142,34 +154,6 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		setPicked(null);
 		void stop();
 	}, [surahNumber, stop]);
-
-	useEffect(() => {
-		let cancelled = false;
-		(async () => {
-			setLoading(true);
-			setError(null);
-			setData(null);
-			try {
-				const local = await loadSurahOffline(surahNumber);
-				if (cancelled) return;
-				if (!local) {
-					setError(ar.failedLoadSurah);
-					setLoading(false);
-					return;
-				}
-				setData(local);
-			} catch {
-				if (!cancelled) {
-					setError(ar.failedLoadSurah);
-				}
-			} finally {
-				if (!cancelled) setLoading(false);
-			}
-		})();
-		return () => {
-			cancelled = true;
-		};
-	}, [surahNumber]);
 
 	const openAyah = useCallback((ayah: Ayah) => {
 		setPicked(ayah);
@@ -194,13 +178,14 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		);
 		setShowFab(y > 120);
 	}, []);
-	const header = useMemo(() => {
-		if (!data) return null;
+
+	const listHeader = useMemo(() => {
+		if (!meta) return null;
 		const showBismillah = surahNumber !== 1 && surahNumber !== 9;
 		return (
 			<View>
 				<SurahHeader
-					surah={data}
+					surah={meta}
 					isDark={isDark}
 					showTransliteration={showTransliteration}
 				/>
@@ -232,7 +217,7 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 			</View>
 		);
 	}, [
-		data,
+		meta,
 		surahNumber,
 		isDark,
 		showTransliteration,
@@ -241,7 +226,150 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		c,
 	]);
 
-	// ... loading / error branches: swap the appbar style below ...
+	const listFooter = useMemo(
+		() =>
+			loadingMore ? (
+				<View style={styles.footerLoader}>
+					<ActivityIndicator color={c.accent} />
+				</View>
+			) : (
+				<View style={styles.footerSpacer} />
+			),
+		[c.accent, loadingMore],
+	);
+
+	const sharedAyahProps = useMemo(
+		() => ({
+			fontSize,
+			arabicFontFamily: arabicFamily,
+			isDark,
+			selectedNumberInSurah,
+			pinnedNumbers,
+			isActive,
+			isTrackPlaying,
+			isTrackLoading,
+			onPressAyah: onPressPlayAyah,
+			onLongPressAyah: openAyah,
+		}),
+		[
+			fontSize,
+			arabicFamily,
+			isDark,
+			selectedNumberInSurah,
+			pinnedNumbers,
+			isActive,
+			isTrackPlaying,
+			isTrackLoading,
+			onPressPlayAyah,
+			openAyah,
+		],
+	);
+
+	const renderAyahCard: ListRenderItem<Ayah> = useCallback(
+		({ item: ayah }) => (
+			<AyahCard
+				ayah={ayah}
+				fontSize={fontSize}
+				arabicFontFamily={arabicFamily}
+				isDark={isDark}
+				selected={selectedNumberInSurah === ayah.numberInSurah}
+				isPinned={
+					!!pins[pinnedAyahKey(surahNumber, ayah.numberInSurah)]
+				}
+				isActive={isActive(ayah.numberInQuran)}
+				isPlaying={isTrackPlaying(ayah.numberInQuran)}
+				isLoadingAudio={isTrackLoading(ayah.numberInQuran)}
+				onPressPlay={onPressPlayAyah}
+				onLongPressAyah={openAyah}
+			/>
+		),
+		[
+			fontSize,
+			arabicFamily,
+			isDark,
+			selectedNumberInSurah,
+			pins,
+			surahNumber,
+			isActive,
+			isTrackPlaying,
+			isTrackLoading,
+			onPressPlayAyah,
+			openAyah,
+		],
+	);
+
+	const renderMushafPage: ListRenderItem<number> = useCallback(
+		({ item: page }) => {
+			ensurePageLoaded(page);
+			const pageAyahs = getPageAyahs(page);
+			if (!pageAyahs) {
+				return (
+					<View
+						style={[
+							styles.pagePlaceholder,
+							{ backgroundColor: c.surface, borderColor: c.border },
+						]}
+					>
+						<ActivityIndicator color={c.accent} />
+					</View>
+				);
+			}
+			return (
+				<MushafPageBlock
+					page={page}
+					pageAyahs={pageAyahs}
+					{...sharedAyahProps}
+				/>
+			);
+		},
+		[c.accent, c.border, c.surface, ensurePageLoaded, getPageAyahs, sharedAyahProps],
+	);
+
+	const keyExtractorAyah = useCallback(
+		(ayah: Ayah) => `${surahNumber}-${ayah.numberInSurah}`,
+		[surahNumber],
+	);
+
+	const keyExtractorPage = useCallback((page: number) => `page-${page}`, []);
+
+	const getAyahItemLayout = useCallback(
+		(_: ArrayLike<Ayah> | null | undefined, index: number) => ({
+			length: AYAH_ESTIMATE_HEIGHT,
+			offset: AYAH_ESTIMATE_HEIGHT * index,
+			index,
+		}),
+		[],
+	);
+
+	const getPageItemLayout = useCallback(
+		(_: ArrayLike<number> | null | undefined, index: number) => ({
+			length: MUSHAF_PAGE_ESTIMATE_HEIGHT,
+			offset: MUSHAF_PAGE_ESTIMATE_HEIGHT * index,
+			index,
+		}),
+		[],
+	);
+
+	const listEmpty = useMemo(() => {
+		if (loading) {
+			return (
+				<View style={styles.centerState}>
+					<ActivityIndicator color={c.accent} />
+					<Text style={{ color: c.textSecondary, marginTop: sp.md }}>
+						{ar.loading}
+					</Text>
+				</View>
+			);
+		}
+		if (error) {
+			return (
+				<View style={styles.centerState}>
+					<Text style={{ color: c.text }}>{ar.failedLoadSurah}</Text>
+				</View>
+			);
+		}
+		return null;
+	}, [c.accent, c.text, c.textSecondary, error, loading]);
 
 	return (
 		<SafeAreaView
@@ -264,7 +392,7 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 					color={c.text}
 				/>
 				<Appbar.Content
-					title={data?.name ?? ''}
+					title={meta?.name ?? ''}
 					titleStyle={{
 						color: c.text,
 						fontSize: 17,
@@ -277,7 +405,6 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 				<View style={{ width: 48 }} />
 			</Appbar.Header>
 
-			{/* Hairline progress bar */}
 			<View style={[styles.progressTrack, { backgroundColor: c.border }]}>
 				<View
 					style={[
@@ -290,67 +417,87 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 				/>
 			</View>
 
-			<ScrollView
-				ref={scrollRef}
-				removeClippedSubviews
-				onScroll={onScroll}
-				scrollEventThrottle={16}
-				showsVerticalScrollIndicator={false}
-				contentContainerStyle={{
-					paddingBottom: insets.bottom + playerBottomInset + 72,
-					paddingHorizontal: sp.md,
-				}}
-				style={styles.scroll}
-			>
-				{header}
-				<View style={styles.ayahList}>
-					{ayahLayout === 'continuous' ? (
-						<ContinuousAyahBlock
-							ayahs={preparedAyahs}
-							fontSize={fontSize}
-							arabicFontFamily={arabicFamily}
-							isDark={isDark}
-							selectedNumberInSurah={selectedNumberInSurah}
-							pinnedNumbers={pinnedNumbers}
-							isActive={isActive}
-							isTrackPlaying={isTrackPlaying}
-							isTrackLoading={isTrackLoading}
-							onPressAyah={onPressPlayAyah}
-							onLongPressAyah={openAyah}
-						/>
-					) : (
-						preparedAyahs.map((ayah) => (
-							<AyahCard
-								key={`${surahNumber}-${ayah.numberInSurah}`}
-								ayah={ayah}
-								fontSize={fontSize}
-								arabicFontFamily={arabicFamily}
-								isDark={isDark}
-								selected={
-									selectedNumberInSurah === ayah.numberInSurah
-								}
-								isPinned={
-									!!pins[
-										pinnedAyahKey(
-											surahNumber,
-											ayah.numberInSurah,
-										)
-									]
-								}
-								isActive={isActive(ayah.numberInQuran)}
-								isPlaying={isTrackPlaying(ayah.numberInQuran)}
-								isLoadingAudio={isTrackLoading(
-									ayah.numberInQuran,
-								)}
-								onPressPlay={onPressPlayAyah}
-								onLongPressAyah={openAyah}
-							/>
-						))
-					)}
+			{isOffline ? (
+				<View
+					style={[
+						styles.banner,
+						{ backgroundColor: c.accentMutedSoft },
+					]}
+				>
+					<View
+						style={[
+							styles.bannerDot,
+							{ backgroundColor: c.accentMuted },
+						]}
+					/>
+					<Text
+						style={{
+							color: c.text,
+							fontSize: 12,
+							fontWeight: '600',
+						}}
+					>
+						{ar.offlineBanner}
+					</Text>
 				</View>
-			</ScrollView>
+			) : null}
 
-			{/* Floating audio player with elevated dock look */}
+			{ayahLayout === 'continuous' ? (
+				<FlatList
+					ref={listRef}
+					data={pageNumbers}
+					keyExtractor={keyExtractorPage}
+					renderItem={renderMushafPage}
+					ListHeaderComponent={listHeader}
+					ListFooterComponent={listFooter}
+					ListEmptyComponent={listEmpty}
+					onScroll={onScroll}
+					scrollEventThrottle={16}
+					onEndReached={loadMore}
+					onEndReachedThreshold={0.4}
+					removeClippedSubviews
+					initialNumToRender={2}
+					maxToRenderPerBatch={2}
+					windowSize={5}
+					getItemLayout={getPageItemLayout}
+					showsVerticalScrollIndicator={false}
+					contentContainerStyle={[
+						styles.listContent,
+						{
+							paddingBottom: insets.bottom + playerBottomInset + 72,
+						},
+					]}
+					style={styles.scroll}
+				/>
+			) : (
+				<FlatList
+					ref={listRef}
+					data={ayahs}
+					keyExtractor={keyExtractorAyah}
+					renderItem={renderAyahCard}
+					ListHeaderComponent={listHeader}
+					ListFooterComponent={listFooter}
+					ListEmptyComponent={listEmpty}
+					onScroll={onScroll}
+					scrollEventThrottle={16}
+					onEndReached={loadMore}
+					onEndReachedThreshold={0.35}
+					removeClippedSubviews
+					initialNumToRender={8}
+					maxToRenderPerBatch={6}
+					windowSize={7}
+					getItemLayout={getAyahItemLayout}
+					showsVerticalScrollIndicator={false}
+					contentContainerStyle={[
+						styles.listContent,
+						{
+							paddingBottom: insets.bottom + playerBottomInset + 72,
+						},
+					]}
+					style={styles.scroll}
+				/>
+			)}
+
 			{playerVisible && currentTrack ? (
 				<View
 					style={[
@@ -394,7 +541,10 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 						},
 					]}
 					onPress={() =>
-						scrollRef.current?.scrollTo({ y: 0, animated: true })
+						listRef.current?.scrollToOffset({
+							offset: 0,
+							animated: true,
+						})
 					}
 					accessibilityLabel={ar.scrollToTop}
 				/>
@@ -404,7 +554,7 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 				ref={sheetRef}
 				isDark={isDark}
 				surahNumber={surahNumber}
-				surahEnglishName={data?.englishName ?? ''}
+				surahEnglishName={meta?.englishName ?? ''}
 				ayah={picked}
 				ayahIsPinned={pickedIsPinned}
 				onTogglePin={onTogglePickedPin}
@@ -441,7 +591,9 @@ const styles = StyleSheet.create({
 		borderBottomRightRadius: 2,
 	},
 	scroll: { flex: 1 },
-	ayahList: { marginTop: sp.sm },
+	listContent: {
+		paddingHorizontal: sp.md,
+	},
 	bismillahFrame: {
 		marginHorizontal: sp.sm,
 		marginVertical: sp.lg,
@@ -453,6 +605,25 @@ const styles = StyleSheet.create({
 	bismillah: {
 		textAlign: 'center',
 		writingDirection: 'rtl',
+	},
+	footerLoader: {
+		paddingVertical: sp.lg,
+		alignItems: 'center',
+	},
+	footerSpacer: {
+		height: sp.sm,
+	},
+	centerState: {
+		paddingVertical: sp.xxl,
+		alignItems: 'center',
+	},
+	pagePlaceholder: {
+		minHeight: MUSHAF_PAGE_ESTIMATE_HEIGHT,
+		borderRadius: 18,
+		borderWidth: StyleSheet.hairlineWidth,
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginBottom: sp.lg,
 	},
 	fab: {
 		position: 'absolute',
@@ -470,4 +641,3 @@ const styles = StyleSheet.create({
 		elevation: 8,
 	},
 });
-
