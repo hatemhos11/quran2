@@ -94,14 +94,16 @@ export async function loadSurahOffline(surahNumber: number): Promise<SurahWithAy
     numberInSurah: number;
     numberInQuran: number;
     text: string;
+    page: number | null;
   }>(
-    'SELECT numberInSurah, numberInQuran, text FROM ayahs WHERE surahId = ? ORDER BY numberInSurah ASC',
+    'SELECT numberInSurah, numberInQuran, text, page FROM ayahs WHERE surahId = ? ORDER BY numberInSurah ASC',
     [surahNumber]
   );
   const ayahs: Ayah[] = ayahRows.map((r) => ({
     numberInSurah: r.numberInSurah,
     numberInQuran: r.numberInQuran,
     text: r.text,
+    page: r.page ?? 1,
   }));
   return {
     number: surah.id,

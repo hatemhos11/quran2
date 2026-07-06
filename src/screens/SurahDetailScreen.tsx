@@ -15,13 +15,14 @@ import {
 
 import { AyahAudioPlayer } from '@/components/AyahAudioPlayer';
 import { AyahCard } from '@/components/AyahCard';
+import { ContinuousAyahBlock } from '@/components/ContinuousAyahBlock';
 import { SurahHeader } from '@/components/SurahHeader';
 import { TafsirBottomSheet } from '@/components/TafsirBottomSheet';
 import { useAyahAudio } from '@/hooks/useAyahAudio';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { ar } from '@/i18n/ar';
 import type { SurahsStackParamList } from '@/navigation/types';
-import { getArabicFontFamily } from '@/services/fontLoader';
+import { getQuranFontFamily } from '@/services/fontLoader';
 import { loadSurahOffline } from '@/services/offlineStorage';
 import { pinnedAyahKey, usePinnedAyahStore } from '@/store/pinnedAyahStore';
 import { useQuranStore } from '@/store/quranStore';
@@ -43,8 +44,8 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 	const themeMode = useSettingsStore((s) => s.theme);
 	const fontSize = useSettingsStore((s) => s.fontSize);
 	const showTransliteration = useSettingsStore((s) => s.showTransliteration);
-	const readingFont = useSettingsStore((s) => s.readingFont);
 	const preferredReciter = useSettingsStore((s) => s.preferredReciter);
+	const ayahLayout = useSettingsStore((s) => s.ayahLayout);
 	const isDark = themeMode === 'dark';
 	const c = getAppColors(isDark);
 
@@ -87,7 +88,7 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		return ayahs;
 	}, [data]);
 
-	const arabicFamily = getArabicFontFamily(readingFont);
+	const arabicFamily = getQuranFontFamily();
 
 	const {
 		currentTrack,
@@ -115,6 +116,16 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		},
 		[playAyah],
 	);
+
+	const pinnedNumbers = useMemo(() => {
+		const set = new Set<number>();
+		for (const ayah of preparedAyahs) {
+			if (pins[pinnedAyahKey(surahNumber, ayah.numberInSurah)]) {
+				set.add(ayah.numberInSurah);
+			}
+		}
+		return set;
+	}, [preparedAyahs, pins, surahNumber]);
 
 	const playerBottomInset = playerVisible ? 118 : 0;
 
@@ -206,7 +217,7 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 									color: c.arabic,
 									fontSize: fontSize * 0.95,
 									fontFamily: arabicFamily,
-									lineHeight: fontSize * 1.6,
+									lineHeight: fontSize * 1.85,
 								},
 							]}
 						>
@@ -261,6 +272,7 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 						fontWeight: '600',
 						textAlign: 'center',
 						writingDirection: 'rtl',
+						fontFamily: arabicFamily,
 					}}
 					subtitleStyle={{
 						color: c.textTertiary,
@@ -324,31 +336,47 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 			>
 				{header}
 				<View style={styles.ayahList}>
-					{preparedAyahs.map((ayah) => (
-						<AyahCard
-							key={`${surahNumber}-${ayah.numberInSurah}`}
-							ayah={ayah}
+					{ayahLayout === 'continuous' ? (
+						<ContinuousAyahBlock
+							ayahs={preparedAyahs}
 							fontSize={fontSize}
 							arabicFontFamily={arabicFamily}
 							isDark={isDark}
-							selected={
-								selectedNumberInSurah === ayah.numberInSurah
-							}
-							isPinned={
-								!!pins[
-									pinnedAyahKey(
-										surahNumber,
-										ayah.numberInSurah,
-									)
-								]
-							}
-							isActive={isActive(ayah.numberInQuran)}
-							isPlaying={isTrackPlaying(ayah.numberInQuran)}
-							isLoadingAudio={isTrackLoading(ayah.numberInQuran)}
-							onPressPlay={onPressPlayAyah}
+							selectedNumberInSurah={selectedNumberInSurah}
+							pinnedNumbers={pinnedNumbers}
+							isActive={isActive}
+							isTrackPlaying={isTrackPlaying}
+							isTrackLoading={isTrackLoading}
+							onPressAyah={onPressPlayAyah}
 							onLongPressAyah={openAyah}
 						/>
-					))}
+					) : (
+						preparedAyahs.map((ayah) => (
+							<AyahCard
+								key={`${surahNumber}-${ayah.numberInSurah}`}
+								ayah={ayah}
+								fontSize={fontSize}
+								arabicFontFamily={arabicFamily}
+								isDark={isDark}
+								selected={
+									selectedNumberInSurah === ayah.numberInSurah
+								}
+								isPinned={
+									!!pins[
+										pinnedAyahKey(
+											surahNumber,
+											ayah.numberInSurah,
+										)
+									]
+								}
+								isActive={isActive(ayah.numberInQuran)}
+								isPlaying={isTrackPlaying(ayah.numberInQuran)}
+								isLoadingAudio={isTrackLoading(ayah.numberInQuran)}
+								onPressPlay={onPressPlayAyah}
+								onLongPressAyah={openAyah}
+							/>
+						))
+					)}
 				</View>
 			</ScrollView>
 

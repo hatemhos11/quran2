@@ -1,70 +1,88 @@
 {
-	"expo": {
-		"name": "quran",
-		"slug": "quran2",
-		"version": "1.0.0",
-		"orientation": "default",
-		"icon": "./assets/images/icon.png",
-		"scheme": "quran2",
-		"userInterfaceStyle": "automatic",
-		"ios": {
-			"icon": "./assets/images/icon.png",
-			"supportsTablet": true,
-			"bundleIdentifier": "com.hatemhos111.quran2",
-			"infoPlist": {
-				"ITSAppUsesNonExemptEncryption": false,
-				"NSLocationWhenInUseUsageDescription": "يُستخدم موقعك لحساب مواقيت الصلاة بدقة."
-			}
-		},
-		"android": {
-			"supportsRtl": true,
-			"permissions": [
-				"ACCESS_COARSE_LOCATION",
-				"ACCESS_FINE_LOCATION"
-			],
-			"adaptiveIcon": {
-				"foregroundImage": "./assets/images/adaptive-icon.png",
-				"backgroundColor": "#003030"
-			},
-			"package": "com.hatemhos111.quran2"
-		},
-		"web": {
-			"output": "single",
-			"favicon": "./assets/images/favicon.png"
-		},
-		"plugins": [
-			[
-				"expo-splash-screen",
-				{
-					"backgroundColor": "#003030",
-					"image": "./assets/images/splash-icon.png",
-					"resizeMode": "cover"
-				}
-			],
-			[
-				"expo-location",
-				{
-					"locationWhenInUsePermission": "يُستخدم موقعك لحساب مواقيت الصلاة بدقة."
-				}
-			],
-			[
-				"expo-localization",
-				{
-					"supportedLocales": {
-						"ios": ["ar"],
-						"android": ["ar"]
-					}
-				}
-			],
-			"expo-sqlite",
-			"expo-font"
-		],
-		"extra": {
-			"supportsRTL": true,
-			"eas": {
-				"projectId": "1cdb11c5-c303-4927-9e3b-2f7e37c6db56"
-			}
-		}
-	}
+  "expo": {
+    "name": "quran",
+    "slug": "quran2",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "scheme": "quran2",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/images/icon.png",
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hatemhos111.quran2",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "يُستخدم موقعك لحساب مواقيت الصلاة بدقة."
+      }
+    },
+    "android": {
+      "supportsRtl": true,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#003030"
+      },
+      "package": "com.hatemhos111.quran2"
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#003030",
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "cover"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "يُستخدم موقعك لحساب مواقيت الصلاة بدقة."
+        }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": [
+              "ar"
+            ],
+            "android": [
+              "ar"
+            ]
+          }
+        }
+      ],
+      "expo-sqlite",
+      [
+        "expo-font",
+        {
+          "fonts": ["./assets/fonts/UthmanicHafs.otf"]
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "enableBundleCompression": true
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "supportsRTL": true,
+      "eas": {
+        "projectId": "1cdb11c5-c303-4927-9e3b-2f7e37c6db56"
+      }
+    }
+  }
 }
-

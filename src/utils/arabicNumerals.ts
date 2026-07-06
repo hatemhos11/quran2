@@ -6,6 +6,10 @@ const ARABIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩
 export const verseNumMarkerImage: ImageSourcePropType =
 	require('../../assets/VerseNum.png');
 
+/** Ornate Quran-style opening/closing ayah brackets. */
+export const AYAH_MARKER_OPEN = '\uFD3F';
+export const AYAH_MARKER_CLOSE = '\uFD3E';
+
 /** Eastern Arabic numerals (٠١٢…) for ayah markers. */
 export function convertToArabicNumerals(num: number): string {
   return String(num)
@@ -14,7 +18,7 @@ export function convertToArabicNumerals(num: number): string {
     .join('');
 }
 
-/** Ornate Quran-style parentheses: U+FD3F … U+FD3E */
+/** Ornate Quran-style parentheses: ﴿ … ﴾ */
 export function ayahEndMarker(numberInSurah: number): string {
-  return `\uFD3F${convertToArabicNumerals(numberInSurah)}\uFD3E`;
+  return `${AYAH_MARKER_OPEN}${convertToArabicNumerals(numberInSurah)}${AYAH_MARKER_CLOSE}`;
 }

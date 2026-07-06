@@ -1,5 +1,3 @@
-import { Amiri_400Regular, Amiri_700Bold } from '@expo-google-fonts/amiri';
-import { ScheherazadeNew_400Regular } from '@expo-google-fonts/scheherazade-new';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
@@ -14,9 +12,7 @@ export function hideNativeSplash(): void {
 
 export function useAppBootstrap() {
   const [fontsLoaded] = useFonts({
-    Amiri_400Regular,
-    Amiri_700Bold,
-    ScheherazadeNew_400Regular,
+    UthmanicHafs: require('../../assets/fonts/UthmanicHafs.otf'),
   });
   const [dbReady, setDbReady] = useState(false);
 

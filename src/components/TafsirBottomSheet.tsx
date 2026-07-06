@@ -18,6 +18,7 @@ import * as Haptics from 'expo-haptics';
 
 import { ar } from '@/i18n/ar';
 import { loadTafsirOffline } from '@/services/offlineStorage';
+import { getQuranFontFamily } from '@/services/fontLoader';
 import type { Ayah } from '@/types';
 import { MUYASSAR_TAFSIR_ID } from '@/utils/constants';
 import { sp } from '@/utils/spacing';
@@ -50,6 +51,7 @@ export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(
 		ref,
 	) {
 		const c = getAppColors(isDark);
+		const quranFont = getQuranFontFamily();
 		const [body, setBody] = useState('');
 		const [loading, setLoading] = useState(false);
 
@@ -219,7 +221,7 @@ export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(
 								<Text
 									style={[
 										styles.ayahText,
-										{ color: c.arabic },
+										{ color: c.arabic, fontFamily: quranFont },
 									]}
 								>
 									{ayah.text}
@@ -239,6 +241,7 @@ export const TafsirBottomSheet = forwardRef<BottomSheetModal, Props>(
 										{
 											color: c.text,
 											writingDirection: 'rtl',
+											fontFamily: quranFont,
 										},
 									]}
 								>

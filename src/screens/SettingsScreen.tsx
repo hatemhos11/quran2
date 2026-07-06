@@ -20,36 +20,15 @@ import {
 
 import { ar } from '@/i18n/ar';
 import type { SettingsStackParamList } from '@/navigation/types';
+import { getQuranFontFamily } from '@/services/fontLoader';
 import { useReciterStore } from '@/store/reciterStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import type { ReadingFontId, ThemeMode } from '@/types';
+import type { AyahLayoutMode, ThemeMode } from '@/types';
 import { FONT_SIZE_MAX, FONT_SIZE_MIN } from '@/utils/constants';
 import { sp } from '@/utils/spacing';
 import { getAppColors, type AppColors } from '@/utils/theme';
 
 type Nav = NativeStackNavigationProp<SettingsStackParamList>;
-
-function readingFontFamily(id: ReadingFontId): string | undefined {
-	switch (id) {
-		case 'amiri':
-			return 'Amiri_400Regular';
-		case 'scheherazade':
-			return 'ScheherazadeNew_400Regular';
-		default:
-			return undefined;
-	}
-}
-
-function fontLabel(id: ReadingFontId): string {
-	switch (id) {
-		case 'amiri':
-			return ar.fontAmiri;
-		case 'scheherazade':
-			return ar.fontScheherazade;
-		default:
-			return ar.fontSystem;
-	}
-}
 
 function SectionHeader({
 	icon,
@@ -153,8 +132,8 @@ export function SettingsScreen() {
 	const setShowTransliteration = useSettingsStore(
 		(s) => s.setShowTransliteration,
 	);
-	const readingFont = useSettingsStore((s) => s.readingFont);
-	const setReadingFont = useSettingsStore((s) => s.setReadingFont);
+	const ayahLayout = useSettingsStore((s) => s.ayahLayout);
+	const setAyahLayout = useSettingsStore((s) => s.setAyahLayout);
 	const preferredReciter = useSettingsStore((s) => s.preferredReciter);
 
 	const reciters = useReciterStore((s) => s.reciters);
@@ -170,6 +149,7 @@ export function SettingsScreen() {
 	}, [preferredReciter, reciters]);
 
 	const previewArabic = useMemo(() => 'قُلْ هُوَ اللَّهُ أَحَدٌ', []);
+	const quranFont = getQuranFontFamily();
 
 	return (
 		<SafeAreaView
@@ -233,10 +213,18 @@ export function SettingsScreen() {
 									lineHeight: fontSize * 2.2,
 									color: c.arabic,
 									textAlign: 'center',
-									fontFamily: readingFontFamily(readingFont),
+									fontFamily: quranFont,
 								}}
 							>
 								{previewArabic}
+							</Text>
+							<Text
+								style={[
+									styles.fontCaption,
+									{ color: c.textSecondary },
+								]}
+							>
+								{ar.readingFontName}
 							</Text>
 						</View>
 					</View>
@@ -270,20 +258,31 @@ export function SettingsScreen() {
 					</View>
 				</SettingsCard>
 
-				<SectionHeader icon='format-text' label={ar.arabicFont} c={c} />
 				<SettingsCard c={c} isDark={isDark}>
-					<View style={[styles.pillRow, styles.cardPad]}>
-						{(['amiri', 'scheherazade', 'system'] as ReadingFontId[]).map(
-							(id) => (
-								<OptionPill
-									key={id}
-									label={fontLabel(id)}
-									selected={readingFont === id}
-									onPress={() => setReadingFont(id)}
-									c={c}
-								/>
-							),
-						)}
+					<View style={styles.cardPad}>
+						<Text style={[styles.rowTitle, { color: c.text }]}>
+							{ar.continuousAyahsTitle}
+						</Text>
+						<Text style={[styles.rowDesc, { color: c.textSecondary }]}>
+							{ar.continuousAyahsDesc}
+						</Text>
+						<View style={[styles.pillRow, { marginTop: sp.md }]}>
+							{(['cards', 'continuous'] as AyahLayoutMode[]).map(
+								(mode) => (
+									<OptionPill
+										key={mode}
+										label={
+											mode === 'cards'
+												? ar.ayahLayoutCards
+												: ar.ayahLayoutContinuous
+										}
+										selected={ayahLayout === mode}
+										onPress={() => setAyahLayout(mode)}
+										c={c}
+									/>
+								),
+							)}
+						</View>
 					</View>
 				</SettingsCard>
 
@@ -492,6 +491,12 @@ const styles = StyleSheet.create({
 		paddingVertical: sp.lg,
 		paddingHorizontal: sp.md,
 		marginTop: sp.md,
+		gap: sp.sm,
+	},
+	fontCaption: {
+		fontSize: 12,
+		textAlign: 'center',
+		writingDirection: 'rtl',
 	},
 	toggleRow: {
 		flexDirection: 'row-reverse',

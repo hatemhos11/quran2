@@ -13,13 +13,14 @@ export interface Ayah {
   numberInSurah: number;
   numberInQuran: number;
   text: string;
+  page: number;
 }
 
 export interface SurahWithAyahs extends SurahMeta {
   ayahs: Ayah[];
 }
 
-export type ReadingFontId = 'amiri' | 'scheherazade' | 'system';
+export type AyahLayoutMode = 'cards' | 'continuous';
 
 export type ThemeMode = 'light' | 'dark';
 

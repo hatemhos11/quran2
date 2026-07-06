@@ -4,6 +4,7 @@ import { Text } from 'react-native-paper';
 
 import { ar } from '@/i18n/ar';
 import type { SurahMeta } from '@/types';
+import { getQuranFontFamily } from '@/services/fontLoader';
 import { sp } from '@/utils/spacing';
 import { getAppColors } from '@/utils/theme';
 
@@ -16,6 +17,7 @@ type Props = {
 export function SurahHeader({ surah, isDark, showTransliteration }: Props) {
 	const c = getAppColors(isDark);
 	const isMadani = surah.revelationType === 'Medinan';
+	const quranFont = getQuranFontFamily();
 
 	return (
 		<View style={styles.wrap}>
@@ -29,7 +31,7 @@ export function SurahHeader({ surah, isDark, showTransliteration }: Props) {
 			</View>
 
 			<Text
-				style={[styles.arName, { color: c.arabic }]}
+				style={[styles.arName, { color: c.arabic, fontFamily: quranFont }]}
 				accessibilityRole='header'
 			>
 				{surah.name}

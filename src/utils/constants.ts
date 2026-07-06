@@ -12,6 +12,9 @@ export const QURAN_CLOUD_AUDIO_EDITIONS_URL =
 export const FONT_SIZE_MIN = 24;
 export const FONT_SIZE_MAX = 48;
 
+/** KFGQPC Uthmanic Script HAFS — Madinah mushaf naskh (see assets/fonts/UthmanicHafs.otf). */
+export const QURAN_FONT_FAMILY = 'UthmanicHafs';
+
 export const BISMILLAH = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
 
 export const AYAH_ESTIMATE_HEIGHT = 104;

@@ -36,7 +36,7 @@ export const AyahCard = memo(function AyahCard({
 	onLongPressAyah,
 }: Props) {
 	const c = getAppColors(isDark);
-	const lineHeight = fontSize * 1.95;
+	const lineHeight = fontSize * 2.1;
 
 	// State-driven surface
 	const cardBg = isActive

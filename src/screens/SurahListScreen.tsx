@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import { ar } from '@/i18n/ar';
 import type { SurahsStackParamList } from '@/navigation/types';
+import { getQuranFontFamily } from '@/services/fontLoader';
 import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { SurahMeta } from '@/types';
@@ -25,6 +26,7 @@ type Props = NativeStackScreenProps<SurahsStackParamList, 'SurahList'>;
 export function SurahListScreen({ navigation }: Props) {
 	const isDark = useSettingsStore((s) => s.theme) === 'dark';
 	const c = getAppColors(isDark);
+	const quranFont = getQuranFontFamily();
 
 	const surahs = useQuranStore((s) => s.surahs);
 	const surahsLoading = useQuranStore((s) => s.surahsLoading);
@@ -114,7 +116,10 @@ export function SurahListScreen({ navigation }: Props) {
 						{/* Middle: Arabic name + english + ayah count */}
 						<View style={styles.itemMid}>
 							<Text
-								style={[styles.ar, { color: c.arabic }]}
+								style={[
+									styles.ar,
+									{ color: c.arabic, fontFamily: quranFont },
+								]}
 								numberOfLines={1}
 							>
 								{s.name}

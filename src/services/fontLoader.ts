@@ -1,11 +1,5 @@
-import type { ReadingFontId } from '@/types';
+import { QURAN_FONT_FAMILY } from '@/utils/constants';
 
-const MAP: Record<ReadingFontId, string | undefined> = {
-  amiri: 'Amiri_400Regular',
-  scheherazade: 'ScheherazadeNew_400Regular',
-  system: undefined,
-};
-
-export function getArabicFontFamily(readingFont: ReadingFontId): string | undefined {
-  return MAP[readingFont];
+export function getQuranFontFamily(): string {
+  return QURAN_FONT_FAMILY;
 }

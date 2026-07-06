@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import { ar } from '@/i18n/ar';
 import type { AzkarStackParamList } from '@/navigation/types';
-import { getArabicFontFamily } from '@/services/fontLoader';
+import { getQuranFontFamily } from '@/services/fontLoader';
 import { loadAzkarByCategory } from '@/services/offlineStorage';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { AzkarItem } from '@/types';
@@ -164,9 +164,8 @@ function AzkarCard({
 export function AzkarCategoryScreen({ navigation, route }: Props) {
 	const { category } = route.params;
 	const isDark = useSettingsStore((s) => s.theme) === 'dark';
-	const readingFont = useSettingsStore((s) => s.readingFont);
 	const c = getAppColors(isDark);
-	const arabicFamily = getArabicFontFamily(readingFont);
+	const arabicFamily = getQuranFontFamily();
 
 	const [items, setItems] = useState<AzkarItem[]>([]);
 	const [loading, setLoading] = useState(true);
