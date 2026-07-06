@@ -29,6 +29,7 @@ import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { Ayah, SurahWithAyahs } from '@/types';
 import { BISMILLAH } from '@/utils/constants';
+import { formatAyahDisplayText } from '@/utils/ayahText';
 import { sp } from '@/utils/spacing';
 import { isBasmalah, removeBasmalah } from '@/utils/startWithBasmalah';
 import { getAppColors } from '@/utils/theme';
@@ -85,7 +86,10 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		) {
 			ayahs[0] = { ...ayahs[0], text: removeBasmalah(ayahs[0].text) };
 		}
-		return ayahs;
+		return ayahs.map((a) => ({
+			...a,
+			text: formatAyahDisplayText(a.text),
+		}));
 	}, [data]);
 
 	const arabicFamily = getQuranFontFamily();

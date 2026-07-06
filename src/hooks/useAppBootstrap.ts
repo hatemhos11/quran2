@@ -12,7 +12,7 @@ export function hideNativeSplash(): void {
 
 export function useAppBootstrap() {
   const [fontsLoaded] = useFonts({
-    UthmanicHafs: require('../../assets/fonts/UthmanicHafs.otf'),
+    HafsQuran: require('../../assets/fonts/HafsQuran.ttf'),
   });
   const [dbReady, setDbReady] = useState(false);
 

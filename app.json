@@ -64,7 +64,7 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/fonts/UthmanicHafs.otf"]
+          "fonts": ["./assets/fonts/HafsQuran.ttf"]
         }
       ],
       [

@@ -12,8 +12,8 @@ export const QURAN_CLOUD_AUDIO_EDITIONS_URL =
 export const FONT_SIZE_MIN = 24;
 export const FONT_SIZE_MAX = 48;
 
-/** KFGQPC Uthmanic Script HAFS — Madinah mushaf naskh (see assets/fonts/UthmanicHafs.otf). */
-export const QURAN_FONT_FAMILY = 'UthmanicHafs';
+/** Official KFGQPC Uthmanic Hafs V22 — Hafs Arabic & Quran Unicode font. */
+export const QURAN_FONT_FAMILY = 'HafsQuran';
 
 export const BISMILLAH = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
 

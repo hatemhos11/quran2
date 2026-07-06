@@ -161,7 +161,9 @@ const MushafPageBlock = memo(function MushafPageBlock({
 			</Text>
 
 			<View style={[styles.pageFooter, { borderTopColor: c.divider }]}>
-				<View style={[styles.pageRule, { backgroundColor: c.border }]} />
+				<View
+					style={[styles.pageRule, { backgroundColor: c.border }]}
+				/>
 				<Text
 					style={[
 						styles.pageNumber,
@@ -184,10 +186,7 @@ const MushafPageBlock = memo(function MushafPageBlock({
 export const ContinuousAyahBlock = memo(function ContinuousAyahBlock(
 	props: Props,
 ) {
-	const pages = useMemo(
-		() => groupAyahsByPage(props.ayahs),
-		[props.ayahs],
-	);
+	const pages = useMemo(() => groupAyahsByPage(props.ayahs), [props.ayahs]);
 
 	return (
 		<View style={styles.pagesStack}>
@@ -229,7 +228,7 @@ const styles = StyleSheet.create({
 		elevation: 1,
 	},
 	body: {
-		textAlign: 'justify',
+		// textAlign: 'right',
 		writingDirection: 'rtl',
 		includeFontPadding: false,
 	},
@@ -257,3 +256,4 @@ const styles = StyleSheet.create({
 		opacity: 0.9,
 	},
 });
+

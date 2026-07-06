@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
 		paddingBottom: sp.lg,
 	},
 	ayahText: {
-		textAlign: 'justify',
+		// textAlign: 'right',
 		writingDirection: 'rtl',
 		includeFontPadding: false,
 	},
