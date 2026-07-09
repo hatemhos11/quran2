@@ -14,22 +14,19 @@ import {
 	type ListRenderItem,
 } from 'react-native';
 import { Appbar, FAB, Text } from 'react-native-paper';
-import {
-	SafeAreaView,
-	useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AyahAudioPlayer } from '@/components/AyahAudioPlayer';
 import { AyahCard } from '@/components/AyahCard';
 import { MushafPageBlock } from '@/components/ContinuousAyahBlock';
+import { GLOBAL_AUDIO_PLAYER_HEIGHT } from '@/components/GlobalAyahAudioPlayer';
 import { SurahHeader } from '@/components/SurahHeader';
 import { TafsirBottomSheet } from '@/components/TafsirBottomSheet';
-import { useAyahAudio } from '@/hooks/useAyahAudio';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { useSurahContent, type AyahPage, type MushafPage } from '@/hooks/useSurahContent';
 import { ar } from '@/i18n/ar';
 import type { SurahsStackParamList } from '@/navigation/types';
 import { getQuranFontFamily } from '@/services/fontLoader';
+import { useAyahAudioStore } from '@/store/ayahAudioStore';
 import { pinnedAyahKey, usePinnedAyahStore } from '@/store/pinnedAyahStore';
 import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -47,13 +44,11 @@ type Props = NativeStackScreenProps<SurahsStackParamList, 'SurahDetail'>;
 
 export function SurahDetailScreen({ navigation, route }: Props) {
 	useOfflineSync();
-	const insets = useSafeAreaInsets();
 	const surahNumber = route.params.surahNumber;
 
 	const themeMode = useSettingsStore((s) => s.theme);
 	const fontSize = useSettingsStore((s) => s.fontSize);
 	const showTransliteration = useSettingsStore((s) => s.showTransliteration);
-	const preferredReciter = useSettingsStore((s) => s.preferredReciter);
 	const ayahLayout = useSettingsStore((s) => s.ayahLayout);
 	const isDark = themeMode === 'dark';
 	const c = getAppColors(isDark);
@@ -95,6 +90,13 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 
 	const arabicFamily = getQuranFontFamily();
 
+	const currentTrack = useAyahAudioStore((s) => s.currentTrack);
+	const audioIsPlaying = useAyahAudioStore((s) => s.isPlaying);
+	const audioIsLoading = useAyahAudioStore((s) => s.isLoading);
+	const setPlaylist = useAyahAudioStore((s) => s.setPlaylist);
+	const playAyah = useAyahAudioStore((s) => s.playAyah);
+	const playerVisible = currentTrack != null;
+
 	const audioTracks = useMemo(
 		() =>
 			ayahIndex.map((a) => ({
@@ -104,31 +106,33 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		[ayahIndex],
 	);
 
-	const {
-		currentTrack,
-		isPlaying: audioIsPlaying,
-		isLoading: audioIsLoading,
-		positionMillis,
-		durationMillis,
-		repeatEnabled,
-		autoNextEnabled,
-		playAyah,
-		togglePlayPause,
-		stop,
-		seek,
-		toggleRepeat,
-		toggleAutoNext,
-		isActive,
-		isTrackPlaying,
-		isTrackLoading,
-		playerVisible,
-	} = useAyahAudio(preferredReciter, audioTracks);
+	const isActive = useCallback(
+		(numberInQuran: number) =>
+			currentTrack?.numberInQuran === numberInQuran,
+		[currentTrack],
+	);
+
+	const isTrackPlaying = useCallback(
+		(numberInQuran: number) =>
+			currentTrack?.numberInQuran === numberInQuran && audioIsPlaying,
+		[audioIsPlaying, currentTrack],
+	);
+
+	const isTrackLoading = useCallback(
+		(numberInQuran: number) =>
+			audioIsLoading && currentTrack?.numberInQuran === numberInQuran,
+		[audioIsLoading, currentTrack],
+	);
 
 	const onPressPlayAyah = useCallback(
 		(ayah: Ayah) => {
-			playAyah(ayah);
+			setPlaylist(surahNumber, audioTracks);
+			playAyah(ayah, {
+				surahNumber,
+				surahName: meta?.name ?? '',
+			});
 		},
-		[playAyah],
+		[audioTracks, meta?.name, playAyah, setPlaylist, surahNumber],
 	);
 
 	const pinnedNumbers = useMemo(() => {
@@ -141,7 +145,7 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		return set;
 	}, [ayahIndex, pins, surahNumber]);
 
-	const playerBottomInset = playerVisible ? 118 : 0;
+	const playerBottomInset = playerVisible ? GLOBAL_AUDIO_PLAYER_HEIGHT : 0;
 
 	useEffect(() => {
 		setCurrentSurahNumber(surahNumber);
@@ -150,8 +154,14 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 	useEffect(() => {
 		setSelectedNumberInSurah(null);
 		setPicked(null);
-		void stop();
-	}, [surahNumber, stop]);
+	}, [surahNumber]);
+
+	useEffect(() => {
+		if (!audioTracks.length) return;
+		if (currentTrack?.surahNumber === surahNumber) {
+			setPlaylist(surahNumber, audioTracks);
+		}
+	}, [audioTracks, currentTrack?.surahNumber, setPlaylist, surahNumber]);
 
 	const openAyah = useCallback((ayah: Ayah) => {
 		setPicked(ayah);
@@ -451,7 +461,7 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 					contentContainerStyle={[
 						styles.listContent,
 						{
-							paddingBottom: insets.bottom + playerBottomInset + 72,
+							paddingBottom: playerBottomInset + 72,
 						},
 					]}
 					style={styles.scroll}
@@ -478,42 +488,12 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 					contentContainerStyle={[
 						styles.listContent,
 						{
-							paddingBottom: insets.bottom + playerBottomInset + 72,
+							paddingBottom: playerBottomInset + 72,
 						},
 					]}
 					style={styles.scroll}
 				/>
 			)}
-
-			{playerVisible && currentTrack ? (
-				<View
-					style={[
-						styles.playerWrap,
-						{
-							paddingBottom: insets.bottom,
-							backgroundColor: c.surfaceElevated,
-							borderTopColor: c.border,
-							shadowColor: c.cardShadow,
-						},
-					]}
-				>
-					<AyahAudioPlayer
-						isDark={isDark}
-						ayahNumber={currentTrack.numberInSurah}
-						isPlaying={audioIsPlaying}
-						isLoading={audioIsLoading}
-						positionMillis={positionMillis}
-						durationMillis={durationMillis}
-						repeatEnabled={repeatEnabled}
-						autoNextEnabled={autoNextEnabled}
-						onTogglePlayPause={() => void togglePlayPause()}
-						onSeek={(pos) => void seek(pos)}
-						onToggleRepeat={toggleRepeat}
-						onToggleAutoNext={toggleAutoNext}
-						onClose={() => void stop()}
-					/>
-				</View>
-			) : null}
 
 			{showFab ? (
 				<FAB
@@ -523,7 +503,7 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 						styles.fab,
 						{
 							backgroundColor: c.accent,
-							bottom: insets.bottom + playerBottomInset + sp.lg,
+							bottom: playerBottomInset + sp.lg,
 							right: sp.lg,
 						},
 					]}
@@ -607,16 +587,5 @@ const styles = StyleSheet.create({
 	fab: {
 		position: 'absolute',
 		borderRadius: 16,
-	},
-	playerWrap: {
-		position: 'absolute',
-		left: 0,
-		right: 0,
-		bottom: 0,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		shadowOffset: { width: 0, height: -4 },
-		shadowOpacity: 1,
-		shadowRadius: 12,
-		elevation: 8,
 	},
 });

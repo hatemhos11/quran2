@@ -10,6 +10,7 @@ import { getAppColors } from '@/utils/theme';
 
 type Props = {
   isDark: boolean;
+  surahName?: string;
   ayahNumber: number;
   isPlaying: boolean;
   isLoading: boolean;
@@ -73,6 +74,7 @@ function ControlButton({
 
 export function AyahAudioPlayer({
   isDark,
+  surahName,
   ayahNumber,
   isPlaying,
   isLoading,
@@ -92,6 +94,9 @@ export function AyahAudioPlayer({
 
   const maxDuration = Math.max(durationMillis, 1);
   const sliderValue = seeking ? seekValue : positionMillis;
+  const title = surahName
+    ? ar.ayahPlayerLabelWithSurah(surahName, ayahNumber)
+    : ar.ayahPlayerLabel(ayahNumber);
 
   const onSlidingStart = useCallback(() => {
     setSeeking(true);
@@ -130,7 +135,7 @@ export function AyahAudioPlayer({
           style={styles.closeButton}
         />
         <Text style={[styles.title, { color: c.text }]} numberOfLines={1}>
-          {ar.ayahPlayerLabel(ayahNumber)}
+          {title}
         </Text>
         <View style={styles.headerSpacer} />
       </View>

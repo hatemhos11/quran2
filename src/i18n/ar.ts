@@ -78,6 +78,8 @@ export const ar = {
   stopAyahAudioA11y: 'إيقاف التلاوة',
   ayahAudioError: 'تعذر تشغيل التلاوة',
   ayahPlayerLabel: (n: number) => `آية ${n}`,
+  ayahPlayerLabelWithSurah: (surahName: string, n: number) =>
+    `${surahName} · آية ${n}`,
   audioPlayerPlayA11y: 'تشغيل',
   audioPlayerPauseA11y: 'إيقاف مؤقت',
   audioPlayerRepeatA11y: 'تكرار الآية',

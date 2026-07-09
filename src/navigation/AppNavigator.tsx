@@ -2,7 +2,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GlobalAyahAudioPlayer } from '@/components/GlobalAyahAudioPlayer';
 import { ar } from '@/i18n/ar';
 import { AzkarCategoriesScreen } from '@/screens/AzkarCategoriesScreen';
 import { AzkarCategoryScreen } from '@/screens/AzkarCategoryScreen';
@@ -23,6 +26,7 @@ const PrayerStack = createNativeStackNavigator<PrayerStackParamList>();
 const SettingsStack = createNativeStackNavigator<SettingsStackParamList>();
 
 const TAB_ICON_SIZE = 20;
+const TAB_BAR_BASE_HEIGHT = 60;
 
 function SurahsStackNavigator() {
 	return (
@@ -90,88 +94,97 @@ function SettingsStackNavigator() {
 }
 
 export function AppNavigator() {
+	const insets = useSafeAreaInsets();
 	const isDark = useSettingsStore((s) => s.theme) === 'dark';
 	const c = getAppColors(isDark);
+	const tabBarHeight = TAB_BAR_BASE_HEIGHT + Math.max(insets.bottom - 8, 0);
 
 	return (
-		<Tab.Navigator
-			screenOptions={{
-				headerShown: false,
-				tabBarActiveTintColor: c.accent,
-				tabBarInactiveTintColor: c.textSecondary,
-				tabBarStyle: {
-					height: 60,
-					paddingTop: 8,
-					paddingBottom: 8,
-					backgroundColor: c.surface,
-					borderTopColor: isDark ? '#37474F' : '#E0E0E0',
-				},
-				tabBarLabelStyle: {
-					fontSize: 11,
-					marginBottom: 3,
-				},
-				tabBarIconStyle: {
-					marginTop: 1,
-				},
-			}}
-		>
-			<Tab.Screen
-				name='Surahs'
-				component={SurahsStackNavigator}
-				options={{
-					title: ar.surahs,
-					tabBarIcon: ({ color }) => (
-						<MaterialCommunityIcons
-							name='book-open-page-variant'
-							size={TAB_ICON_SIZE}
-							color={color}
-						/>
-					),
+		<View style={styles.root}>
+			<Tab.Navigator
+				screenOptions={{
+					headerShown: false,
+					tabBarActiveTintColor: c.accent,
+					tabBarInactiveTintColor: c.textSecondary,
+					tabBarStyle: {
+						height: tabBarHeight,
+						paddingTop: 8,
+						paddingBottom: Math.max(insets.bottom, 8),
+						backgroundColor: c.surface,
+						borderTopColor: isDark ? '#37474F' : '#E0E0E0',
+					},
+					tabBarLabelStyle: {
+						fontSize: 11,
+						marginBottom: 3,
+					},
+					tabBarIconStyle: {
+						marginTop: 1,
+					},
 				}}
-			/>
-			<Tab.Screen
-				name='Azkar'
-				component={AzkarStackNavigator}
-				options={{
-					title: ar.azkar,
-					tabBarIcon: ({ color }) => (
-						<MaterialCommunityIcons
-							name='hands-pray'
-							size={TAB_ICON_SIZE}
-							color={color}
-						/>
-					),
-				}}
-			/>
-			<Tab.Screen
-				name='Prayer'
-				component={PrayerStackNavigator}
-				options={{
-					title: ar.prayerTimesTab,
-					tabBarIcon: ({ color }) => (
-						<MaterialCommunityIcons
-							name='mosque'
-							size={TAB_ICON_SIZE}
-							color={color}
-						/>
-					),
-				}}
-			/>
-			<Tab.Screen
-				name='Settings'
-				component={SettingsStackNavigator}
-				options={{
-					title: ar.settings,
-					tabBarIcon: ({ color }) => (
-						<MaterialCommunityIcons
-							name='cog-outline'
-							size={TAB_ICON_SIZE}
-							color={color}
-						/>
-					),
-				}}
-			/>
-		</Tab.Navigator>
+			>
+				<Tab.Screen
+					name='Surahs'
+					component={SurahsStackNavigator}
+					options={{
+						title: ar.surahs,
+						tabBarIcon: ({ color }) => (
+							<MaterialCommunityIcons
+								name='book-open-page-variant'
+								size={TAB_ICON_SIZE}
+								color={color}
+							/>
+						),
+					}}
+				/>
+				<Tab.Screen
+					name='Azkar'
+					component={AzkarStackNavigator}
+					options={{
+						title: ar.azkar,
+						tabBarIcon: ({ color }) => (
+							<MaterialCommunityIcons
+								name='hands-pray'
+								size={TAB_ICON_SIZE}
+								color={color}
+							/>
+						),
+					}}
+				/>
+				<Tab.Screen
+					name='Prayer'
+					component={PrayerStackNavigator}
+					options={{
+						title: ar.prayerTimesTab,
+						tabBarIcon: ({ color }) => (
+							<MaterialCommunityIcons
+								name='mosque'
+								size={TAB_ICON_SIZE}
+								color={color}
+							/>
+						),
+					}}
+				/>
+				<Tab.Screen
+					name='Settings'
+					component={SettingsStackNavigator}
+					options={{
+						title: ar.settings,
+						tabBarIcon: ({ color }) => (
+							<MaterialCommunityIcons
+								name='cog-outline'
+								size={TAB_ICON_SIZE}
+								color={color}
+							/>
+						),
+					}}
+				/>
+			</Tab.Navigator>
+			<GlobalAyahAudioPlayer bottomOffset={tabBarHeight} />
+		</View>
 	);
 }
+
+const styles = StyleSheet.create({
+	root: { flex: 1 },
+});
 
