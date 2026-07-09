@@ -195,11 +195,6 @@ export function AzkarCategoriesScreen({ navigation }: Props) {
 									{item.itemCount}
 								</Text>
 							</View>
-							<MaterialCommunityIcons
-								name='chevron-left'
-								size={22}
-								color={c.textSecondary}
-							/>
 						</Pressable>
 						<IconButton
 							icon={pinned ? 'pin' : 'pin-outline'}
