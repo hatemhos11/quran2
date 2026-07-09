@@ -60,7 +60,7 @@ export const ar = {
   mushafPageA11y: (n: number) => `صفحة ${n}`,
   ayahLayoutCards: 'بطاقات',
   ayahLayoutContinuous: 'مصحف',
-  readingFontName: 'حفص (قرآن)',
+  readingFontName: 'شهرزاد',
   appearance: 'المظهر',
   light: 'فاتح',
   dark: 'داكن',

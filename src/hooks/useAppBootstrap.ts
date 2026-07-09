@@ -1,3 +1,4 @@
+import { ScheherazadeNew_400Regular } from '@expo-google-fonts/scheherazade-new';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
@@ -12,7 +13,7 @@ export function hideNativeSplash(): void {
 
 export function useAppBootstrap() {
   const [fontsLoaded] = useFonts({
-    HafsQuran: require('../../assets/fonts/HafsQuran.ttf'),
+    ScheherazadeNew_400Regular,
   });
   const [dbReady, setDbReady] = useState(false);
 

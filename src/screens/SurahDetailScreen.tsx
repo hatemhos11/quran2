@@ -26,7 +26,7 @@ import { SurahHeader } from '@/components/SurahHeader';
 import { TafsirBottomSheet } from '@/components/TafsirBottomSheet';
 import { useAyahAudio } from '@/hooks/useAyahAudio';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
-import { useSurahContent } from '@/hooks/useSurahContent';
+import { useSurahContent, type AyahPage, type MushafPage } from '@/hooks/useSurahContent';
 import { ar } from '@/i18n/ar';
 import type { SurahsStackParamList } from '@/navigation/types';
 import { getQuranFontFamily } from '@/services/fontLoader';
@@ -35,7 +35,7 @@ import { useQuranStore } from '@/store/quranStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { Ayah } from '@/types';
 import {
-	AYAH_ESTIMATE_HEIGHT,
+	AYAH_PAGE_ESTIMATE_HEIGHT,
 	BISMILLAH,
 	MUSHAF_PAGE_ESTIMATE_HEIGHT,
 } from '@/utils/constants';
@@ -64,15 +64,13 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 	const {
 		meta,
 		ayahIndex,
-		ayahs,
-		pageNumbers,
+		ayahPages,
+		mushafPages,
 		loading,
 		loadingMore,
 		hasMore,
 		error,
 		loadMore,
-		getPageAyahs,
-		ensurePageLoaded,
 	} = useSurahContent(surahNumber, ayahLayout);
 
 	const [scrollProgress, setScrollProgress] = useState(0);
@@ -81,7 +79,7 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		number | null
 	>(null);
 
-	const listRef = useRef<FlatList>(null);
+	const listRef = useRef<FlatList<any>>(null);
 	const sheetRef = useRef<BottomSheetModal>(null);
 	const [picked, setPicked] = useState<Ayah | null>(null);
 
@@ -265,23 +263,28 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		],
 	);
 
-	const renderAyahCard: ListRenderItem<Ayah> = useCallback(
-		({ item: ayah }) => (
-			<AyahCard
-				ayah={ayah}
-				fontSize={fontSize}
-				arabicFontFamily={arabicFamily}
-				isDark={isDark}
-				selected={selectedNumberInSurah === ayah.numberInSurah}
-				isPinned={
-					!!pins[pinnedAyahKey(surahNumber, ayah.numberInSurah)]
-				}
-				isActive={isActive(ayah.numberInQuran)}
-				isPlaying={isTrackPlaying(ayah.numberInQuran)}
-				isLoadingAudio={isTrackLoading(ayah.numberInQuran)}
-				onPressPlay={onPressPlayAyah}
-				onLongPressAyah={openAyah}
-			/>
+	const renderAyahPage: ListRenderItem<AyahPage> = useCallback(
+		({ item }) => (
+			<View>
+				{item.ayahs.map((ayah) => (
+					<AyahCard
+						key={`${surahNumber}-${ayah.numberInSurah}`}
+						ayah={ayah}
+						fontSize={fontSize}
+						arabicFontFamily={arabicFamily}
+						isDark={isDark}
+						selected={selectedNumberInSurah === ayah.numberInSurah}
+						isPinned={
+							!!pins[pinnedAyahKey(surahNumber, ayah.numberInSurah)]
+						}
+						isActive={isActive(ayah.numberInQuran)}
+						isPlaying={isTrackPlaying(ayah.numberInQuran)}
+						isLoadingAudio={isTrackLoading(ayah.numberInQuran)}
+						onPressPlay={onPressPlayAyah}
+						onLongPressAyah={openAyah}
+					/>
+				))}
+			</View>
 		),
 		[
 			fontSize,
@@ -298,51 +301,35 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 		],
 	);
 
-	const renderMushafPage: ListRenderItem<number> = useCallback(
-		({ item: page }) => {
-			ensurePageLoaded(page);
-			const pageAyahs = getPageAyahs(page);
-			if (!pageAyahs) {
-				return (
-					<View
-						style={[
-							styles.pagePlaceholder,
-							{ backgroundColor: c.surface, borderColor: c.border },
-						]}
-					>
-						<ActivityIndicator color={c.accent} />
-					</View>
-				);
-			}
-			return (
-				<MushafPageBlock
-					page={page}
-					pageAyahs={pageAyahs}
-					{...sharedAyahProps}
-				/>
-			);
-		},
-		[c.accent, c.border, c.surface, ensurePageLoaded, getPageAyahs, sharedAyahProps],
+	const renderMushafPage: ListRenderItem<MushafPage> = useCallback(
+		({ item }) => (
+			<MushafPageBlock
+				page={item.page}
+				pageAyahs={item.ayahs}
+				{...sharedAyahProps}
+			/>
+		),
+		[sharedAyahProps],
 	);
 
-	const keyExtractorAyah = useCallback(
-		(ayah: Ayah) => `${surahNumber}-${ayah.numberInSurah}`,
-		[surahNumber],
+	const keyExtractorAyahPage = useCallback((page: AyahPage) => page.key, []);
+
+	const keyExtractorMushafPage = useCallback(
+		(item: MushafPage) => `page-${item.page}`,
+		[],
 	);
 
-	const keyExtractorPage = useCallback((page: number) => `page-${page}`, []);
-
-	const getAyahItemLayout = useCallback(
-		(_: ArrayLike<Ayah> | null | undefined, index: number) => ({
-			length: AYAH_ESTIMATE_HEIGHT,
-			offset: AYAH_ESTIMATE_HEIGHT * index,
+	const getAyahPageItemLayout = useCallback(
+		(_: ArrayLike<AyahPage> | null | undefined, index: number) => ({
+			length: AYAH_PAGE_ESTIMATE_HEIGHT,
+			offset: AYAH_PAGE_ESTIMATE_HEIGHT * index,
 			index,
 		}),
 		[],
 	);
 
 	const getPageItemLayout = useCallback(
-		(_: ArrayLike<number> | null | undefined, index: number) => ({
+		(_: ArrayLike<MushafPage> | null | undefined, index: number) => ({
 			length: MUSHAF_PAGE_ESTIMATE_HEIGHT,
 			offset: MUSHAF_PAGE_ESTIMATE_HEIGHT * index,
 			index,
@@ -445,8 +432,8 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 			{ayahLayout === 'continuous' ? (
 				<FlatList
 					ref={listRef}
-					data={pageNumbers}
-					keyExtractor={keyExtractorPage}
+					data={mushafPages}
+					keyExtractor={keyExtractorMushafPage}
 					renderItem={renderMushafPage}
 					ListHeaderComponent={listHeader}
 					ListFooterComponent={listFooter}
@@ -472,9 +459,9 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 			) : (
 				<FlatList
 					ref={listRef}
-					data={ayahs}
-					keyExtractor={keyExtractorAyah}
-					renderItem={renderAyahCard}
+					data={ayahPages}
+					keyExtractor={keyExtractorAyahPage}
+					renderItem={renderAyahPage}
 					ListHeaderComponent={listHeader}
 					ListFooterComponent={listFooter}
 					ListEmptyComponent={listEmpty}
@@ -483,10 +470,10 @@ export function SurahDetailScreen({ navigation, route }: Props) {
 					onEndReached={loadMore}
 					onEndReachedThreshold={0.35}
 					removeClippedSubviews
-					initialNumToRender={8}
-					maxToRenderPerBatch={6}
-					windowSize={7}
-					getItemLayout={getAyahItemLayout}
+					initialNumToRender={2}
+					maxToRenderPerBatch={2}
+					windowSize={5}
+					getItemLayout={getAyahPageItemLayout}
 					showsVerticalScrollIndicator={false}
 					contentContainerStyle={[
 						styles.listContent,
@@ -616,14 +603,6 @@ const styles = StyleSheet.create({
 	centerState: {
 		paddingVertical: sp.xxl,
 		alignItems: 'center',
-	},
-	pagePlaceholder: {
-		minHeight: MUSHAF_PAGE_ESTIMATE_HEIGHT,
-		borderRadius: 18,
-		borderWidth: StyleSheet.hairlineWidth,
-		alignItems: 'center',
-		justifyContent: 'center',
-		marginBottom: sp.lg,
 	},
 	fab: {
 		position: 'absolute',

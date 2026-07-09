@@ -9,26 +9,33 @@ import {
 } from '@/services/offlineStorage';
 import type { Ayah, AyahLayoutMode, SurahMeta } from '@/types';
 import {
-  AYAH_INITIAL_CHUNK_SIZE,
-  AYAH_LOAD_CHUNK_SIZE,
-  MUSHAF_INITIAL_PAGES,
+  SURAH_AYAH_PAGE_SIZE,
+  SURAH_MUSHAF_PAGES_PER_LOAD,
 } from '@/utils/constants';
 import { prepareAyahBatch } from '@/utils/prepareAyahText';
 
 export type AyahIndex = Pick<Ayah, 'numberInSurah' | 'numberInQuran' | 'page'>;
 
+export type AyahPage = {
+  key: string;
+  ayahs: Ayah[];
+};
+
+export type MushafPage = {
+  page: number;
+  ayahs: Ayah[];
+};
+
 type UseSurahContentResult = {
   meta: SurahMeta | null;
   ayahIndex: AyahIndex[];
-  ayahs: Ayah[];
-  pageNumbers: number[];
+  ayahPages: AyahPage[];
+  mushafPages: MushafPage[];
   loading: boolean;
   loadingMore: boolean;
   hasMore: boolean;
   error: string | null;
   loadMore: () => void;
-  getPageAyahs: (page: number) => Ayah[] | undefined;
-  ensurePageLoaded: (page: number) => void;
 };
 
 export function useSurahContent(
@@ -37,62 +44,84 @@ export function useSurahContent(
 ): UseSurahContentResult {
   const [meta, setMeta] = useState<SurahMeta | null>(null);
   const [ayahIndex, setAyahIndex] = useState<AyahIndex[]>([]);
-  const [ayahs, setAyahs] = useState<Ayah[]>([]);
-  const [pageNumbers, setPageNumbers] = useState<number[]>([]);
+  const [ayahPages, setAyahPages] = useState<AyahPage[]>([]);
+  const [mushafPages, setMushafPages] = useState<MushafPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pageVersion, setPageVersion] = useState(0);
 
-  const loadedOffsetRef = useRef(0);
-  const pageCacheRef = useRef<Map<number, Ayah[]>>(new Map());
-  const loadingPagesRef = useRef<Set<number>>(new Set());
-  const loadedPageCountRef = useRef(0);
+  const loadedAyahOffsetRef = useRef(0);
+  const loadedMushafIndexRef = useRef(0);
+  const allMushafPagesRef = useRef<number[]>([]);
   const loadingMoreRef = useRef(false);
 
   const stripBasmalah = surahNumber !== 1 && surahNumber !== 9;
 
   const reset = useCallback(() => {
-    loadedOffsetRef.current = 0;
-    pageCacheRef.current = new Map();
-    loadingPagesRef.current = new Set();
-    loadedPageCountRef.current = 0;
+    loadedAyahOffsetRef.current = 0;
+    loadedMushafIndexRef.current = 0;
+    allMushafPagesRef.current = [];
     loadingMoreRef.current = false;
     setMeta(null);
     setAyahIndex([]);
-    setAyahs([]);
-    setPageNumbers([]);
+    setAyahPages([]);
+    setMushafPages([]);
     setHasMore(true);
     setError(null);
-    setPageVersion(0);
   }, []);
 
-  const loadPages = useCallback(
-    async (pages: number[]) => {
-      const pending = pages.filter(
-        (page) =>
-          !pageCacheRef.current.has(page) && !loadingPagesRef.current.has(page),
+  const appendAyahPage = useCallback((rows: Ayah[], pageIndex: number) => {
+    if (!rows.length) return;
+    setAyahPages((prev) => [
+      ...prev,
+      {
+        key: `${surahNumber}-ayah-page-${pageIndex}`,
+        ayahs: rows,
+      },
+    ]);
+  }, [surahNumber]);
+
+  const loadAyahPage = useCallback(
+    async (offset: number, pageIndex: number) => {
+      const rows = await loadAyahsChunkOffline(
+        surahNumber,
+        offset,
+        SURAH_AYAH_PAGE_SIZE,
       );
-      if (!pending.length) return;
+      const prepared = prepareAyahBatch(rows, {
+        stripLeadingBasmalah: stripBasmalah && offset === 0,
+      });
+      appendAyahPage(prepared, pageIndex);
+      loadedAyahOffsetRef.current = offset + prepared.length;
+      return prepared.length;
+    },
+    [appendAyahPage, stripBasmalah, surahNumber],
+  );
 
-      for (const page of pending) loadingPagesRef.current.add(page);
+  const loadMushafPages = useCallback(
+    async (startIndex: number, count: number) => {
+      const slice = allMushafPagesRef.current.slice(
+        startIndex,
+        startIndex + count,
+      );
+      if (!slice.length) return 0;
 
-      await Promise.all(
-        pending.map(async (page) => {
-          try {
-            const rows = await loadAyahsByPageOffline(surahNumber, page);
-            pageCacheRef.current.set(
-              page,
-              prepareAyahBatch(rows, { stripLeadingBasmalah: stripBasmalah }),
-            );
-          } finally {
-            loadingPagesRef.current.delete(page);
-          }
+      const loaded = await Promise.all(
+        slice.map(async (page) => {
+          const rows = await loadAyahsByPageOffline(surahNumber, page);
+          return {
+            page,
+            ayahs: prepareAyahBatch(rows, {
+              stripLeadingBasmalah: stripBasmalah,
+            }),
+          };
         }),
       );
 
-      setPageVersion((v) => v + 1);
+      setMushafPages((prev) => [...prev, ...loaded]);
+      loadedMushafIndexRef.current = startIndex + loaded.length;
+      return loaded.length;
     },
     [stripBasmalah, surahNumber],
   );
@@ -102,7 +131,7 @@ export function useSurahContent(
     reset();
     setLoading(true);
 
-    (async () => {
+    void (async () => {
       try {
         const [surahMeta, index] = await Promise.all([
           loadSurahMetaOffline(surahNumber),
@@ -122,23 +151,14 @@ export function useSurahContent(
         if (layout === 'continuous') {
           const pages = await loadSurahPageNumbersOffline(surahNumber);
           if (cancelled) return;
-          setPageNumbers(pages);
-          loadedPageCountRef.current = Math.min(MUSHAF_INITIAL_PAGES, pages.length);
-          setHasMore(loadedPageCountRef.current < pages.length);
-          await loadPages(pages.slice(0, loadedPageCountRef.current));
-        } else {
-          const first = await loadAyahsChunkOffline(
-            surahNumber,
-            0,
-            AYAH_INITIAL_CHUNK_SIZE,
-          );
+          allMushafPagesRef.current = pages;
+          const loaded = await loadMushafPages(0, SURAH_MUSHAF_PAGES_PER_LOAD);
           if (cancelled) return;
-          const prepared = prepareAyahBatch(first, {
-            stripLeadingBasmalah: stripBasmalah,
-          });
-          loadedOffsetRef.current = prepared.length;
-          setAyahs(prepared);
-          setHasMore(prepared.length < surahMeta.numberOfAyahs);
+          setHasMore(loaded > 0 && loadedMushafIndexRef.current < pages.length);
+        } else {
+          const loaded = await loadAyahPage(0, 0);
+          if (cancelled) return;
+          setHasMore(loaded > 0 && loadedAyahOffsetRef.current < surahMeta.numberOfAyahs);
         }
       } catch {
         if (!cancelled) setError('failed');
@@ -150,7 +170,7 @@ export function useSurahContent(
     return () => {
       cancelled = true;
     };
-  }, [layout, loadPages, reset, stripBasmalah, surahNumber]);
+  }, [layout, loadAyahPage, loadMushafPages, reset, surahNumber]);
 
   const loadMore = useCallback(() => {
     if (loading || loadingMoreRef.current || !hasMore) return;
@@ -161,70 +181,52 @@ export function useSurahContent(
     void (async () => {
       try {
         if (layout === 'continuous') {
-          const nextPages = pageNumbers.slice(
-            loadedPageCountRef.current,
-            loadedPageCountRef.current + MUSHAF_INITIAL_PAGES,
+          const loaded = await loadMushafPages(
+            loadedMushafIndexRef.current,
+            SURAH_MUSHAF_PAGES_PER_LOAD,
           );
-          if (!nextPages.length) {
+          if (!loaded) {
             setHasMore(false);
             return;
           }
-          await loadPages(nextPages);
-          loadedPageCountRef.current += nextPages.length;
-          setHasMore(loadedPageCountRef.current < pageNumbers.length);
+          setHasMore(
+            loadedMushafIndexRef.current < allMushafPagesRef.current.length,
+          );
         } else if (meta) {
-          const chunk = await loadAyahsChunkOffline(
-            surahNumber,
-            loadedOffsetRef.current,
-            AYAH_LOAD_CHUNK_SIZE,
+          const loaded = await loadAyahPage(
+            loadedAyahOffsetRef.current,
+            ayahPages.length,
           );
-          if (!chunk.length) {
+          if (!loaded) {
             setHasMore(false);
             return;
           }
-          const prepared = prepareAyahBatch(chunk, {
-            stripLeadingBasmalah: stripBasmalah && loadedOffsetRef.current === 0,
-          });
-          loadedOffsetRef.current += chunk.length;
-          setAyahs((prev) => [...prev, ...prepared]);
-          setHasMore(loadedOffsetRef.current < meta.numberOfAyahs);
+          setHasMore(loadedAyahOffsetRef.current < meta.numberOfAyahs);
         }
       } finally {
         loadingMoreRef.current = false;
         setLoadingMore(false);
       }
     })();
-  }, [hasMore, layout, loadPages, loading, meta, pageNumbers, stripBasmalah, surahNumber]);
-
-  const getPageAyahs = useCallback(
-    (page: number) => {
-      void pageVersion;
-      return pageCacheRef.current.get(page);
-    },
-    [pageVersion],
-  );
-
-  const ensurePageLoaded = useCallback(
-    (page: number) => {
-      if (pageCacheRef.current.has(page) || loadingPagesRef.current.has(page)) {
-        return;
-      }
-      void loadPages([page]);
-    },
-    [loadPages],
-  );
+  }, [
+    ayahPages.length,
+    hasMore,
+    layout,
+    loadAyahPage,
+    loadMushafPages,
+    loading,
+    meta,
+  ]);
 
   return {
     meta,
     ayahIndex,
-    ayahs,
-    pageNumbers,
+    ayahPages,
+    mushafPages,
     loading,
     loadingMore,
     hasMore,
     error,
     loadMore,
-    getPageAyahs,
-    ensurePageLoaded,
   };
 }

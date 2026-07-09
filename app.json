@@ -62,12 +62,6 @@
       ],
       "expo-sqlite",
       [
-        "expo-font",
-        {
-          "fonts": ["./assets/fonts/HafsQuran.ttf"]
-        }
-      ],
-      [
         "expo-build-properties",
         {
           "android": {

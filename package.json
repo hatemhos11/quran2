@@ -13,6 +13,7 @@
     "add:azkar": "python3 scripts/add-azkar-to-db.py"
   },
   "dependencies": {
+    "@expo-google-fonts/scheherazade-new": "^0.4.3",
     "@expo/vector-icons": "^15.0.3",
     "@gorhom/bottom-sheet": "^5.1.6",
     "@react-native-async-storage/async-storage": "2.2.0",

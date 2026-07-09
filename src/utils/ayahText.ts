@@ -1,4 +1,4 @@
-/** Normalize Quranic ayah text for Uthmanic Hafs Unicode display. */
+/** Normalize Quranic ayah text for display. */
 export function formatAyahDisplayText(text: string): string {
   return text
     .replace(/\ufeff/g, '')
